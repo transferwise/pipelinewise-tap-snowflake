@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(name='pipelinewise-tap-snowflake',
       version='1.0.0',
-      description='Singer.io tap for extracting data from Snowflake',
+      description='Singer.io tap for extracting data from Snowflake - PipelineWise compatible',
       author="TransferWise",
       url='https://github.com/transferwise/pipelinewise-tap-postgres',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
