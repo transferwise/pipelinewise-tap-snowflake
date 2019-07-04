@@ -195,7 +195,8 @@ def discover_catalog(snowflake_conn, config):
             table_schema in table_info[table_catalog] and
             table_name in table_info[table_catalog][table_schema]
            ):
-            row_count = table_info[table_catalog][table_schema][table_name].get('row_count')
+            # Row Count of views returns NULL - Transform it to not null integer by defaults to 0
+            row_count = table_info[table_catalog][table_schema][table_name].get('row_count', 0) or 0
             is_view = table_info[table_catalog][table_schema][table_name]['is_view']
 
             md_map = metadata.write(md_map, (), 'row-count', row_count)
