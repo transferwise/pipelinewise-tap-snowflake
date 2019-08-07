@@ -91,3 +91,28 @@ is invoked.
 Incremental replication works in conjunction with a state file to only extract
 new records each time the tap is invoked. This requires a replication key to be
 specified in the table's metadata as well.
+
+### To run tests:
+
+1. Define environment variables that requires running the tests
+```
+  export TAP_SNOWFLAKE_ACCOUNT=<snowflake-account-name>
+  export TAP_SNOWFLAKE_DBNAME=<snowflake-database-name>
+  export TAP_SNOWFLAKE_USER=<snowflake-user>
+  export TAP_SNOWFLAKE_PASSWORD=<snowfale-password>
+  export TAP_SNOWFLAKE_WAREHOUSE=<snowflake-warehouse>
+```
+
+2. Install python dependencies in a virtual env and run nose unit and integration tests
+```
+  python3 -m venv venv
+  . venv/bin/activate
+  pip install --upgrade pip
+  pip install .
+  pip install nose
+```
+
+3. To run unit tests:
+```
+  nosetests
+```

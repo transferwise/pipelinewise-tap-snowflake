@@ -1,7 +1,9 @@
 import unittest
+import json
 import singer
 
 import tap_snowflake
+import tap_snowflake.sync_strategies.common as common
 
 from singer.schema import Schema
 
@@ -26,9 +28,9 @@ class TestTypeMapping(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        snowflake_conn = test_utils.get_test_connection()
+        cls.snowflake_conn = test_utils.get_test_connection()
 
-        with snowflake_conn.open_connection() as open_conn:
+        with cls.snowflake_conn.open_connection() as open_conn:
             with open_conn.cursor() as cur:
                 cur.execute('''
                 CREATE TABLE {}.test_type_mapping (
@@ -41,12 +43,31 @@ class TestTypeMapping(unittest.TestCase):
                 c_float FLOAT,
                 c_double DOUBLE,
                 c_date DATE,
+                c_datetime DATETIME,
                 c_time TIME,
                 c_binary BINARY,
                 c_varbinary VARBINARY(16)
                 )'''.format(SCHEMA_NAME))
 
-        catalog = test_utils.discover_catalog(snowflake_conn)
+                cur.execute('''
+                INSERT INTO {}.test_type_mapping
+                SELECT 1
+                      ,12345
+                      ,123456789.12
+                      ,123
+                      ,12345
+                      ,1234567890
+                      ,123.123
+                      ,123.123
+                      ,'2019-08-01'
+                      ,'2019-08-01 17:23:59'
+                      ,'17:23:59'
+                      ,HEX_ENCODE('binary')
+                      ,HEX_ENCODE('varbinary')
+                '''.format(SCHEMA_NAME))
+
+        catalog = test_utils.discover_catalog(cls.snowflake_conn)
+        cls.stream = catalog.streams[0]
         cls.schema = catalog.streams[0].schema
         cls.metadata = catalog.streams[0].metadata
 
@@ -121,7 +142,7 @@ class TestTypeMapping(unittest.TestCase):
     def test_time(self):
         self.assertEqual(self.schema.properties['C_TIME'],
                          Schema(['null', 'string'],
-                                format='date-time',
+                                format='time',
                                 inclusion='available'))
         self.assertEqual(self.get_metadata_for_column('C_TIME'),
                          {'selected-by-default': True,
@@ -142,6 +163,49 @@ class TestTypeMapping(unittest.TestCase):
         self.assertEqual(self.get_metadata_for_column('C_VARBINARY'),
                          {'selected-by-default': True,
                           'sql-datatype': 'binary'})
+
+    def test_row_to_singer_record(self):
+        """Select every supported data type from snowflake,
+        generate the singer JSON output message and compare to expected JSON"""
+        catalog_entry = self.stream
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_select_sql(catalog_entry, columns)
+
+        # Run query to export data
+        with self.snowflake_conn.open_connection() as open_conn:
+            with open_conn.cursor() as cur:
+                cur.execute(select_sql, params={})
+                row = cur.fetchone()
+
+                # Convert the exported data to singer JSON
+                record_message = common.row_to_singer_record(catalog_entry=catalog_entry,
+                                                            version=1,
+                                                            row=row,
+                                                            columns=columns,
+                                                            time_extracted=singer.utils.now())
+
+                # Convert to formatted JSON
+                formatted_record = singer.messages.format_message(record_message)
+
+                # Reload the generated JSON to object and assert keys
+                self.assertEquals(json.loads(formatted_record)['type'], 'RECORD')
+                self.assertEquals(json.loads(formatted_record)['stream'], 'TEST_TYPE_MAPPING')
+                self.assertEquals(json.loads(formatted_record)['record'],
+                    {
+                        'C_PK': 1,
+                        'C_DECIMAL': 12345,
+                        'C_DECIMAL_2': 123456789.12,
+                        'C_SMALLINT': 123,
+                        'C_INT': 12345,
+                        'C_BIGINT': 1234567890,
+                        'C_FLOAT': 123.123,
+                        'C_DOUBLE': 123.123,
+                        'C_DATE': '2019-08-01T00:00:00+00:00',
+                        'C_DATETIME': '2019-08-01T17:23:59+00:00',
+                        'C_TIME': '17:23:59',
+                        'C_BINARY': '62696e617279',
+                        'C_VARBINARY': '76617262696e617279'
+                    })
 
 
 class TestSelectsAppropriateColumns(unittest.TestCase):

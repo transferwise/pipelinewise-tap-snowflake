@@ -50,7 +50,7 @@ STRING_TYPES = set(['varchar', 'char', 'character', 'string', 'text'])
 NUMBER_TYPES = set(['number', 'decimal', 'numeric'])
 INTEGER_TYPES = set(['int', 'integer', 'bigint', 'smallint'])
 FLOAT_TYPES = set(['float', 'float4', 'float8', 'real', 'double', 'double precision'])
-DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'time', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
+DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
 BINARY_TYPE = set(['binary', 'varbinary'])
 
 
@@ -80,6 +80,10 @@ def schema_for_column(c):
     elif data_type in DATETIME_TYPES:
         result.type = ['null', 'string']
         result.format = 'date-time'
+
+    elif data_type == 'time':
+        result.type = ['null', 'string']
+        result.format = 'time'
 
     elif data_type in BINARY_TYPE:
         result.type = ['null', 'string']
