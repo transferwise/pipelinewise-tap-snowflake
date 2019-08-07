@@ -113,6 +113,9 @@ def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
             timedelta_from_epoch = epoch + elem
             row_to_persist += (timedelta_from_epoch.isoformat() + '+00:00',)
 
+        elif isinstance(elem, datetime.time):
+            row_to_persist += (str(elem),)
+
         elif isinstance(elem, bytes):
             # for BIT value, treat 0 as False and anything else as True
             if 'boolean' in property_type:

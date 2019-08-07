@@ -3,7 +3,6 @@ import singer
 import snowflake.connector
 
 import tap_snowflake
-import tap_snowflake.sync_strategies.common as common
 from tap_snowflake.connection import SnowflakeConnection
 
 SCHEMA_NAME='tap_snowflake_test'
@@ -42,9 +41,9 @@ def get_test_connection():
     return snowflake_conn
 
 
-def discover_catalog(connection):
+def discover_catalog(snowflake_conn):
     tap_config = get_tap_config()
-    catalog = tap_snowflake.discover_catalog(connection, tap_config)
+    catalog = tap_snowflake.discover_catalog(snowflake_conn, tap_config)
     streams = []
 
     for stream in catalog.streams:
