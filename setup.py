@@ -11,8 +11,11 @@ setup(name='pipelinewise-tap-snowflake',
       long_description=long_description,
       long_description_content_type='text/markdown',
       author="TransferWise",
-      url='https://github.com/transferwise/pipelinewise-tap-postgres',
-      classifiers=['Programming Language :: Python :: 3 :: Only'],
+      url='https://github.com/transferwise/pipelinewise-tap-snowflake',
+      classifiers=[
+          'License :: OSI Approved :: Apache Software License',
+          'Programming Language :: Python :: 3 :: Only'
+      ],
       py_modules=['tap_snowflake'],
       install_requires=[
           'singer-python==5.3.1',

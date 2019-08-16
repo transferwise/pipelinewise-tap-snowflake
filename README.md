@@ -116,3 +116,10 @@ specified in the table's metadata as well.
 ```
   nosetests
 ```
+
+## License
+
+Apache License Version 2.0
+
+See [LICENSE](LICENSE) to see the full text.
+
