@@ -6,7 +6,7 @@ with open('README.md') as f:
       long_description = f.read()
 
 setup(name='pipelinewise-tap-snowflake',
-      version='1.0.4',
+      version='1.0.5',
       description='Singer.io tap for extracting data from Snowflake - PipelineWise compatible',
       long_description=long_description,
       long_description_content_type='text/markdown',
@@ -18,10 +18,12 @@ setup(name='pipelinewise-tap-snowflake',
       ],
       py_modules=['tap_snowflake'],
       install_requires=[
-          'singer-python==5.3.1',
-          'snowflake-connector-python==1.7.4',
-          'backoff==1.3.2',
-          'pendulum==1.2.0'
+            'singer-python==5.9.0',
+            'snowflake-connector-python==2.0.4',
+            'backoff==1.8.0',
+            'pendulum==1.2.0',
+            'pytz==2018.4',
+            'python-dateutil<2.8.1,>=2.1',
       ],
       entry_points='''
           [console_scripts]
