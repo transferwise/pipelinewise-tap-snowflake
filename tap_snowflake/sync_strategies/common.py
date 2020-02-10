@@ -10,7 +10,7 @@ import singer.metrics as metrics
 from singer import metadata
 from singer import utils
 
-LOGGER = singer.get_logger()
+LOGGER = singer.get_logger('tap_snowflake')
 
 def escape(string):
     if '"' in string:

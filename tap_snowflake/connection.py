@@ -4,7 +4,7 @@ import backoff
 import singer
 import snowflake.connector
 
-LOGGER = singer.get_logger()
+LOGGER = singer.get_logger('tap_snowflake')
 
 
 def retry_pattern():

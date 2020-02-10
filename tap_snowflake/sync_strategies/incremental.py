@@ -8,7 +8,7 @@ from singer import metadata
 from tap_snowflake.connection import SnowflakeConnection
 import tap_snowflake.sync_strategies.common as common
 
-LOGGER = singer.get_logger()
+LOGGER = singer.get_logger('tap_snowflake')
 
 BOOKMARK_KEYS = {'replication_key', 'replication_key_value', 'version'}
 
