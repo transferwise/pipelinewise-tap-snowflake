@@ -1,31 +1,28 @@
 #!/usr/bin/env python3
 # pylint: disable=missing-docstring,not-an-iterable,too-many-locals,too-many-arguments,too-many-branches,invalid-name,duplicate-code,too-many-statements
 
-import datetime
 import collections
-import itertools
-from itertools import dropwhile
 import copy
-
+import itertools
+import logging
 
 import singer
 import singer.metrics as metrics
 import singer.schema
-
-from singer import bookmarks
 from singer import metadata
 from singer import utils
-from singer.schema import Schema
 from singer.catalog import Catalog, CatalogEntry
+from singer.schema import Schema
 
 import tap_snowflake.sync_strategies.common as common
 import tap_snowflake.sync_strategies.full_table as full_table
 import tap_snowflake.sync_strategies.incremental as incremental
-
 from tap_snowflake.connection import SnowflakeConnection
 
+LOGGER = singer.get_logger('tap_snowflake')
 
-LOGGER = singer.get_logger()
+# Tone down snowflake connector logs noise
+logging.getLogger('snowflake.connector').setLevel(logging.WARNING)
 
 Column = collections.namedtuple('Column', [
     "table_catalog",

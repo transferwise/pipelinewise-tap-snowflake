@@ -1,6 +1,6 @@
 import os
+
 import singer
-import snowflake.connector
 
 import tap_snowflake
 from tap_snowflake.connection import SnowflakeConnection
