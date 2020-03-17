@@ -187,7 +187,6 @@ class TestTypeMapping(unittest.TestCase):
                                                             time_extracted=singer.utils.now())
 
                 # Convert to formatted JSON
-                print(record_message)
                 formatted_record = singer.messages.format_message(record_message)
 
                 # Reload the generated JSON to object and assert keys
