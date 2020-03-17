@@ -24,6 +24,11 @@ from tap_snowflake.connection import SnowflakeConnection
 
 LOGGER = singer.get_logger('tap_snowflake')
 
+# Max number of rows that a SHOW SCHEMAS|TABLES|COLUMNS can return.
+# If more than this number of returned tap-snowflake raise TooManyRecordsException
+SHOW_COMMAND_MAX_ROWS = 9999
+
+
 # Tone down snowflake connector logs noise
 logging.getLogger('snowflake.connector').setLevel(logging.WARNING)
 
@@ -115,7 +120,7 @@ def create_column_metadata(cols):
 
 def get_databases(snowflake_conn):
     """Get snowflake databases"""
-    databases = snowflake_conn.query("SHOW DATABASES", max_records=9999)
+    databases = snowflake_conn.query('SHOW DATABASES', max_records=SHOW_COMMAND_MAX_ROWS)
 
     # Return only the name of databases as a list
     return [db['name'] for db in databases]
@@ -125,7 +130,7 @@ def get_schemas(snowflake_conn, database):
     """Get schemas of a database"""
     schemas = []
     try:
-        schemas = snowflake_conn.query(f'SHOW SCHEMAS IN DATABASE {database}', max_records=9999)
+        schemas = snowflake_conn.query(f'SHOW SCHEMAS IN DATABASE {database}', max_records=SHOW_COMMAND_MAX_ROWS)
 
         # Get only the name of schemas as a list
         schemas = [schema['name'] for schema in schemas]
@@ -201,7 +206,7 @@ def get_table_columns(snowflake_conn, database, table_schemas=None, table_name=N
 
             # Run everything in one transaction
             try:
-                columns = snowflake_conn.query(queries, max_records=9999)
+                columns = snowflake_conn.query(queries, max_records=SHOW_COMMAND_MAX_ROWS)
                 table_columns.extend(columns)
 
             # Catch exception when schema not exists and SHOW COLUMNS throws a ProgrammingError
