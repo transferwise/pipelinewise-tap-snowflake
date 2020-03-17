@@ -84,6 +84,7 @@ def schema_for_column(c):
 
     elif data_type in BINARY_TYPE:
         result.type = ['null', 'string']
+        result.format = 'binary'
 
     else:
         result = Schema(None,

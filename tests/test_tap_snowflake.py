@@ -151,6 +151,7 @@ class TestTypeMapping(unittest.TestCase):
     def test_binary(self):
         self.assertEqual(self.schema.properties['C_BINARY'],
                          Schema(['null', 'string'],
+                                format='binary',
                                 inclusion='available'))
         self.assertEqual(self.get_metadata_for_column('C_BINARY'),
                          {'selected-by-default': True,
@@ -159,6 +160,7 @@ class TestTypeMapping(unittest.TestCase):
     def test_varbinary(self):
         self.assertEqual(self.schema.properties['C_VARBINARY'],
                          Schema(['null', 'string'],
+                                format='binary',
                                 inclusion='available'))
         self.assertEqual(self.get_metadata_for_column('C_VARBINARY'),
                          {'selected-by-default': True,
@@ -185,6 +187,7 @@ class TestTypeMapping(unittest.TestCase):
                                                             time_extracted=singer.utils.now())
 
                 # Convert to formatted JSON
+                print(record_message)
                 formatted_record = singer.messages.format_message(record_message)
 
                 # Reload the generated JSON to object and assert keys
@@ -203,8 +206,8 @@ class TestTypeMapping(unittest.TestCase):
                         'C_DATE': '2019-08-01T00:00:00+00:00',
                         'C_DATETIME': '2019-08-01T17:23:59+00:00',
                         'C_TIME': '17:23:59',
-                        'C_BINARY': '62696e617279',
-                        'C_VARBINARY': '76617262696e617279'
+                        'C_BINARY': '62696E617279',
+                        'C_VARBINARY': '76617262696E617279'
                     })
 
 
