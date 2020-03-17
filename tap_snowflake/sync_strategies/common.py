@@ -87,7 +87,7 @@ def generate_select_sql(catalog_entry, columns):
     escaped_table = escape(catalog_entry.table)
     escaped_columns = []
 
-    for idx, col_name in enumerate(columns):
+    for col_name in columns:
         escaped_col = escape(col_name)
 
         # fetch the column type format from the json schema alreay built
