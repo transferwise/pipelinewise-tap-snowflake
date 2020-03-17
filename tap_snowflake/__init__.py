@@ -149,7 +149,12 @@ def get_schemas(snowflake_conn, database):
 
 
 def get_table_columns(snowflake_conn, database, table_schemas=None, table_name=None):
-    """Get column definitions for every table in specific schemas(s)"""
+    """Get column definitions for every table in specific schemas(s)
+
+       It's using SHOW commands instead of INFORMATION_SCHEMA views bucause information_schemas views are slow
+       and can cause unexpected exception of:
+            Information schema query returned too much data. Please repeat query with more selective predicates.
+    """
     table_columns = []
     if table_schemas or table_name:
         for schema in table_schemas:
@@ -162,7 +167,7 @@ def get_table_columns(snowflake_conn, database, table_schemas=None, table_name=N
             show_views = f'SHOW TABLES IN SCHEMA {database}.{schema}'
             show_columns = f'SHOW COLUMNS IN SCHEMA {database}.{schema}'
 
-            # Convert output of SHOW COLUMNS to table and insert results into the cache COLUMNS table
+            # Convert output of SHOW commands to tables and use SQL joins to get every required information
             select = f"""
                 WITH
                   show_tables   AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-3)))),
