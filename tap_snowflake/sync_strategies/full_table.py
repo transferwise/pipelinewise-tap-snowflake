@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 # pylint: disable=duplicate-code,too-many-locals,simplifiable-if-expression
 
-import copy
 import singer
-from singer import metadata
-
 import tap_snowflake.sync_strategies.common as common
-from tap_snowflake.connection import SnowflakeConnection
 
 LOGGER = singer.get_logger('tap_snowflake')
 
 BOOKMARK_KEYS = {'last_pk_fetched', 'max_pk_values', 'version', 'initial_full_table_complete'}
 
+
 def get_max_pk_values(cursor, catalog_entry):
+    """Get actual max primary key values from database"""
     database_name = common.get_database_name(catalog_entry)
     escaped_db = common.escape(database_name)
     escaped_table = common.escape(catalog_entry.table)
@@ -26,13 +24,13 @@ def get_max_pk_values(cursor, catalog_entry):
               LIMIT 1
     """
 
-    select_column_clause = ", ".join(escaped_columns)
-    order_column_clause = ", ".join([pk + " DESC" for pk in escaped_columns])
+    select_column_clause = ', '.join(escaped_columns)
+    order_column_clause = ', '.join([pk + ' DESC' for pk in escaped_columns])
 
     cursor.execute(sql.format(select_column_clause,
-                           escaped_db,
-                           escaped_table,
-                           order_column_clause))
+                              escaped_db,
+                              escaped_table,
+                              order_column_clause))
     result = cursor.fetchone()
 
     if result:
@@ -42,12 +40,11 @@ def get_max_pk_values(cursor, catalog_entry):
 
     return max_pk_values
 
+
 def generate_pk_clause(catalog_entry, state):
+    """Generate primary key where clause to SQL select"""
     key_properties = common.get_key_properties(catalog_entry)
     escaped_columns = [common.escape(c) for c in key_properties]
-
-    where_clause = " AND ".join([pk + " > `{}`" for pk in escaped_columns])
-    order_by_clause = ", ".join(['`{}`, ' for pk in escaped_columns])
 
     max_pk_values = singer.get_bookmark(state,
                                         catalog_entry.tap_stream_id,
@@ -58,23 +55,22 @@ def generate_pk_clause(catalog_entry, state):
                                           'last_pk_fetched')
 
     if last_pk_fetched:
-        pk_comparisons = ["({} > {} AND {} <= {})".format(common.escape(pk),
+        pk_comparisons = ['({} > {} AND {} <= {})'.format(common.escape(pk),
                                                           last_pk_fetched[pk],
                                                           common.escape(pk),
                                                           max_pk_values[pk])
                           for pk in key_properties]
     else:
-        pk_comparisons = ["{} <= {}".format(common.escape(pk), max_pk_values[pk])
-                          for pk in key_properties]
+        pk_comparisons = [f'{common.escape(pk)} <= {max_pk_values[pk]}' for pk in key_properties]
 
-    sql = " WHERE {} ORDER BY {} ASC".format(" AND ".join(pk_comparisons),
-                                             ", ".join(escaped_columns))
+    sql = ' WHERE {} ORDER BY {} ASC'.format(' AND '.join(pk_comparisons),
+                                             ', '.join(escaped_columns))
 
     return sql
 
 
-
 def sync_table(snowflake_conn, catalog_entry, state, columns, stream_version):
+    """Sync table with FULL_TABLE"""
     common.whitelist_bookmark_keys(BOOKMARK_KEYS, catalog_entry.tap_stream_id, state)
 
     bookmark = state.get('bookmarks', {}).get(catalog_entry.tap_stream_id, {})

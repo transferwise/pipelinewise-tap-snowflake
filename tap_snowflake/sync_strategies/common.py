@@ -13,6 +13,7 @@ from singer import utils
 LOGGER = singer.get_logger('tap_snowflake')
 
 def escape(string):
+    """Escape strings to be SQL safe"""
     if '"' in string:
         raise Exception("Can't escape identifier {} because it contains a backtick"
                         .format(string))
@@ -20,10 +21,12 @@ def escape(string):
 
 
 def generate_tap_stream_id(catalog_name, schema_name, table_name):
+    """Generate tap stream id as appears in properties.json"""
     return catalog_name + '-' + schema_name + '-' + table_name
 
 
 def get_stream_version(tap_stream_id, state):
+    """Get stream version from bookmark"""
     stream_version = singer.get_bookmark(state, tap_stream_id, 'version')
 
     if stream_version is None:
@@ -33,6 +36,7 @@ def get_stream_version(tap_stream_id, state):
 
 
 def stream_is_selected(stream):
+    """Detect if stream is selected to sync"""
     md_map = metadata.to_map(stream.metadata)
     selected_md = metadata.get(md_map, (), 'selected')
 
@@ -40,6 +44,7 @@ def stream_is_selected(stream):
 
 
 def property_is_selected(stream, property_name):
+    """Detect if field is selected to sync"""
     md_map = metadata.to_map(stream.metadata)
     return singer.should_sync_field(
         metadata.get(md_map, ('properties', property_name), 'inclusion'),
@@ -48,24 +53,28 @@ def property_is_selected(stream, property_name):
 
 
 def get_is_view(catalog_entry):
+    """Detect if stream is a view"""
     md_map = metadata.to_map(catalog_entry.metadata)
 
     return md_map.get((), {}).get('is-view')
 
 
 def get_database_name(catalog_entry):
+    """Get database name from catalog"""
     md_map = metadata.to_map(catalog_entry.metadata)
 
     return md_map.get((), {}).get('database-name')
 
 
 def get_schema_name(catalog_entry):
+    """Get schema name from catalog"""
     md_map = metadata.to_map(catalog_entry.metadata)
 
     return md_map.get((), {}).get('schema-name')
 
 
 def get_key_properties(catalog_entry):
+    """Get key properties from catalog"""
     catalog_metadata = metadata.to_map(catalog_entry.metadata)
     stream_metadata = catalog_metadata.get((), {})
 
@@ -80,6 +89,7 @@ def get_key_properties(catalog_entry):
 
 
 def generate_select_sql(catalog_entry, columns):
+    """Generate SQL to extract data froom snowflake"""
     database_name = get_database_name(catalog_entry)
     schema_name = get_schema_name(catalog_entry)
     escaped_db = escape(database_name)
@@ -94,7 +104,7 @@ def generate_select_sql(catalog_entry, columns):
         property_format = catalog_entry.schema.properties[col_name].format
 
         # if the column format is binary, fetch the hexified value
-        if 'binary' == property_format:
+        if property_format == 'binary':
             escaped_columns.append(f'hex_encode({escaped_col}) as {escaped_col}')
         else:
             escaped_columns.append(escaped_col)
@@ -106,7 +116,9 @@ def generate_select_sql(catalog_entry, columns):
     return select_sql
 
 
+# pylint: disable=too-many-branches
 def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
+    """Transform SQL row to singer compatible record message"""
     row_to_persist = ()
     for idx, elem in enumerate(row):
         property_type = catalog_entry.schema.properties[columns[idx]].type
@@ -153,21 +165,23 @@ def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
 
 
 def whitelist_bookmark_keys(bookmark_key_set, tap_stream_id, state):
-    for bk in [non_whitelisted_bookmark_key
-               for non_whitelisted_bookmark_key
-               in state.get('bookmarks', {}).get(tap_stream_id, {}).keys()
-               if non_whitelisted_bookmark_key not in bookmark_key_set]:
-        singer.clear_bookmark(state, tap_stream_id, bk)
+    """..."""
+    for bookmark_key in [non_whitelisted_bookmark_key
+                         for non_whitelisted_bookmark_key
+                         in state.get('bookmarks', {}).get(tap_stream_id, {}).keys()
+                         if non_whitelisted_bookmark_key not in bookmark_key_set]:
+        singer.clear_bookmark(state, tap_stream_id, bookmark_key)
 
 
 def sync_query(cursor, catalog_entry, state, select_sql, columns, stream_version, params):
+    """..."""
     replication_key = singer.get_bookmark(state,
                                           catalog_entry.tap_stream_id,
                                           'replication_key')
 
     time_extracted = utils.now()
 
-    LOGGER.info("Running {}".format(select_sql))
+    LOGGER.info('Running %s', select_sql)
     cursor.execute(select_sql, params)
 
     row = cursor.fetchone()
@@ -201,7 +215,7 @@ def sync_query(cursor, catalog_entry, state, select_sql, columns, stream_version
                                                     'max_pk_values')
 
                 if max_pk_values:
-                    last_pk_fetched = {k:v for k,v in record_message.record.items()
+                    last_pk_fetched = {k:v for k, v in record_message.record.items()
                                        if k in key_properties}
 
                     state = singer.write_bookmark(state,

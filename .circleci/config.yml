@@ -15,6 +15,22 @@ jobs:
             pip install .[test]
 
       - run:
+          name: 'Pylinting'
+          command: |
+            . venv/bin/activate
+            pylint target_snowflake -d C,W,unexpected-keyword-arg,duplicate-code
+
+      - run:
+          name: 'Check code formatting and do pylinting'
+          command: |
+            . .virtualenvs/pipelinewise/bin/activate
+            pip install unify pylint
+            echo "Checking double quotes..."
+            find tap_snowflake tests -type f -name '*.py' | xargs unify --check-only
+            echo "Running pylint..."
+            pylint tap_snowflake tests
+
+      - run:
           name: 'Integration Tests'
           command: |
             . venv/bin/activate

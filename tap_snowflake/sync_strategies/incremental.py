@@ -4,8 +4,6 @@
 import pendulum
 import singer
 from singer import metadata
-
-from tap_snowflake.connection import SnowflakeConnection
 import tap_snowflake.sync_strategies.common as common
 
 LOGGER = singer.get_logger('tap_snowflake')
@@ -13,6 +11,7 @@ LOGGER = singer.get_logger('tap_snowflake')
 BOOKMARK_KEYS = {'replication_key', 'replication_key_value', 'version'}
 
 def sync_table(snowflake_conn, catalog_entry, state, columns):
+    """Sync table incrementally"""
     common.whitelist_bookmark_keys(BOOKMARK_KEYS, catalog_entry.tap_stream_id, state)
 
     catalog_metadata = metadata.to_map(catalog_entry.metadata)
@@ -61,6 +60,7 @@ def sync_table(snowflake_conn, catalog_entry, state, columns):
                 if catalog_entry.schema.properties[replication_key_metadata].format == 'date-time':
                     replication_key_value = pendulum.parse(replication_key_value)
 
+                # pylint: disable=duplicate-string-formatting-argument
                 select_sql += ' WHERE "{}" >= \'{}\' ORDER BY "{}" ASC'.format(
                     replication_key_metadata,
                     replication_key_value,

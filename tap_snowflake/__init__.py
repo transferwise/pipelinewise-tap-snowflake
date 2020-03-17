@@ -25,14 +25,14 @@ LOGGER = singer.get_logger('tap_snowflake')
 logging.getLogger('snowflake.connector').setLevel(logging.WARNING)
 
 Column = collections.namedtuple('Column', [
-    "table_catalog",
-    "table_schema",
-    "table_name",
-    "column_name",
-    "data_type",
-    "character_maximum_length",
-    "numeric_precision",
-    "numeric_scale"])
+    'table_catalog',
+    'table_schema',
+    'table_name',
+    'column_name',
+    'data_type',
+    'character_maximum_length',
+    'numeric_precision',
+    'numeric_scale'])
 
 REQUIRED_CONFIG_KEYS = [
     'account',
@@ -111,23 +111,21 @@ def create_column_metadata(cols):
 
 
 def discover_catalog(snowflake_conn, config):
-    '''Returns a Catalog describing the structure of the database.'''
+    """Returns a Catalog describing the structure of the database."""
     filter_dbs_config = config.get('filter_dbs')
     filter_schemas_config = config.get('filter_schemas')
 
     if filter_dbs_config:
-        filter_dbs_clause = ",".join("LOWER('{}')".format(db)
-                                        for db in filter_dbs_config.split(","))
+        filter_dbs_clause = ','.join(f"LOWER('{db}')" for db in filter_dbs_config.split(','))
 
-        table_db_clause = "LOWER(t.table_catalog) IN ({})".format(filter_dbs_clause)
+        table_db_clause = f'LOWER(t.table_catalog) IN ({filter_dbs_clause})'
     else:
-        table_db_clause = "1 = 1"
+        table_db_clause = '1 = 1'
 
     if filter_schemas_config:
-        filter_schemas_clause = ",".join(["LOWER('{}')".format(schema)
-                                         for schema in filter_schemas_config.split(",")])
+        filter_schemas_clause = ','.join([f"LOWER('{schema}')" for schema in filter_schemas_config.split(',')])
 
-        table_schema_clause = "LOWER(t.table_schema) IN ({})".format(filter_schemas_clause)
+        table_schema_clause = f'LOWER(t.table_schema) IN ({filter_schemas_clause})'
     else:
         table_schema_clause = "LOWER(t.table_schema) NOT IN ('information_schema')"
 
@@ -190,13 +188,13 @@ def discover_catalog(snowflake_conn, config):
         md_map = metadata.to_map(md)
 
         md_map = metadata.write(md_map, (), 'database-name', table_catalog)
-        md_map =  metadata.write(md_map, (), 'schema-name', table_schema)
+        md_map = metadata.write(md_map, (), 'schema-name', table_schema)
 
         if (
-            table_catalog in table_info and
-            table_schema in table_info[table_catalog] and
-            table_name in table_info[table_catalog][table_schema]
-           ):
+                table_catalog in table_info and
+                table_schema in table_info[table_catalog] and
+                table_name in table_info[table_catalog][table_schema]
+        ):
             # Row Count of views returns NULL - Transform it to not null integer by defaults to 0
             row_count = table_info[table_catalog][table_schema][table_name].get('row_count', 0) or 0
             is_view = table_info[table_catalog][table_schema][table_name]['is_view']
@@ -219,15 +217,14 @@ def discover_catalog(snowflake_conn, config):
 def do_discover(snowflake_conn, config):
     discover_catalog(snowflake_conn, config).dump()
 
-
+# pylint: disable=fixme
 # TODO: Maybe put in a singer-db-utils library.
 def desired_columns(selected, table_schema):
-
-    '''Return the set of column names we need to include in the SELECT.
+    """Return the set of column names we need to include in the SELECT.
 
     selected - set of column names marked as selected in the input catalog
     table_schema - the most recently discovered Schema for the table
-    '''
+    """
     all_columns = set()
     available = set()
     automatic = set()
@@ -305,7 +302,7 @@ def resolve_catalog(discovered_catalog, streams_to_sync):
 
 
 def get_streams(snowflake_conn, catalog, config, state):
-    '''Returns the Catalog of data we're going to sync for all SELECT-based
+    """Returns the Catalog of data we're going to sync for all SELECT-based
     streams (i.e. INCREMENTAL and FULL_TABLE that require a historical
     sync).
 
@@ -321,11 +318,11 @@ def get_streams(snowflake_conn, catalog, config, state):
       1. currently_syncing if it is SELECT-based
       2. any streams that do not have state
       3. any streams that do not have a replication method of LOG_BASED
-
-    '''
+    """
     discovered = discover_catalog(snowflake_conn, config)
 
     # Filter catalog to include only selected streams
+    # pylint: disable=unnecessary-lambda
     selected_streams = list(filter(lambda s: common.stream_is_selected(s), catalog.streams))
     streams_with_state = []
     streams_without_state = []
@@ -360,7 +357,7 @@ def get_streams(snowflake_conn, catalog, config, state):
     return resolve_catalog(discovered, streams_to_sync)
 
 
-def write_schema_message(catalog_entry, bookmark_properties=[]):
+def write_schema_message(catalog_entry, bookmark_properties=None):
     key_properties = common.get_key_properties(catalog_entry)
 
     singer.write_message(singer.SchemaMessage(
@@ -372,13 +369,14 @@ def write_schema_message(catalog_entry, bookmark_properties=[]):
 
 
 def do_sync_incremental(snowflake_conn, catalog_entry, state, columns):
-    LOGGER.info("Stream %s is using incremental replication", catalog_entry.stream)
+    LOGGER.info('Stream %s is using incremental replication', catalog_entry.stream)
 
     md_map = metadata.to_map(catalog_entry.metadata)
     replication_key = md_map.get((), {}).get('replication-key')
 
     if not replication_key:
-        raise Exception("Cannot use INCREMENTAL replication for table ({}) without a replication key.".format(catalog_entry.stream))
+        raise Exception(f'Cannot use INCREMENTAL replication for table ({catalog_entry.stream}) without a replication '
+                        f'key.')
 
     write_schema_message(catalog_entry=catalog_entry,
                          bookmark_properties=[replication_key])
@@ -389,7 +387,7 @@ def do_sync_incremental(snowflake_conn, catalog_entry, state, columns):
 
 
 def do_sync_full_table(snowflake_conn, catalog_entry, state, columns):
-    LOGGER.info("Stream %s is using full table replication", catalog_entry.stream)
+    LOGGER.info('Stream %s is using full table replication', catalog_entry.stream)
 
     write_schema_message(catalog_entry)
 
@@ -432,14 +430,14 @@ def sync_streams(snowflake_conn, catalog, config, state):
             timer.tags['database'] = database_name
             timer.tags['table'] = catalog_entry.table
 
-            LOGGER.info("Beginning to sync %s.%s.%s", database_name, schema_name, catalog_entry.table)
+            LOGGER.info('Beginning to sync %s.%s.%s', database_name, schema_name, catalog_entry.table)
 
             if replication_method == 'INCREMENTAL':
                 do_sync_incremental(snowflake_conn, catalog_entry, state, columns)
             elif replication_method == 'FULL_TABLE':
                 do_sync_full_table(snowflake_conn, catalog_entry, state, columns)
             else:
-                raise Exception("only INCREMENTAL and FULL TABLE replication methods are supported")
+                raise Exception('Only INCREMENTAL and FULL TABLE replication methods are supported')
 
     state = singer.set_currently_syncing(state, None)
     singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
@@ -465,7 +463,7 @@ def main_impl():
         state = args.state or {}
         do_sync(snowflake_conn, args.config, catalog, state)
     else:
-        LOGGER.info("No properties were selected")
+        LOGGER.info('No properties were selected')
 
 
 def main():
