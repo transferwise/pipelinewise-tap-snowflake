@@ -25,6 +25,11 @@ setup(name='pipelinewise-tap-snowflake',
             'pytz==2018.4',
             'python-dateutil<2.8.1,>=2.1',
       ],
+      extras_require={
+          "test": [
+              "nose==1.3.7"
+          ]
+      },
       entry_points='''
           [console_scripts]
           tap-snowflake=tap_snowflake:main
