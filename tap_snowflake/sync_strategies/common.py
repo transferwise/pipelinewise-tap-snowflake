@@ -85,13 +85,21 @@ def generate_select_sql(catalog_entry, columns):
     escaped_db = escape(database_name)
     escaped_schema = escape(schema_name)
     escaped_table = escape(catalog_entry.table)
-    escaped_columns = [escape(c) for c in columns]
+    escaped_columns = []
 
-    select_sql = 'SELECT {} FROM {}.{}.{}'.format(
-        ','.join(escaped_columns),
-        escaped_db,
-        escaped_schema,
-        escaped_table)
+    for idx, col_name in enumerate(columns):
+        escaped_col = escape(col_name)
+
+        # fetch the column type format from the json schema alreay built
+        property_format = catalog_entry.schema.properties[col_name].format
+
+        # if the column format is binary, fetch the hexified value
+        if 'binary' == property_format:
+            escaped_columns.append(f'hex_encode({escaped_col}) as {escaped_col}')
+        else:
+            escaped_columns.append(escaped_col)
+
+    select_sql = f'SELECT {",".join(escaped_columns)} FROM {escaped_db}.{escaped_schema}.{escaped_table}'
 
     # escape percent signs
     select_sql = select_sql.replace('%', '%%')
