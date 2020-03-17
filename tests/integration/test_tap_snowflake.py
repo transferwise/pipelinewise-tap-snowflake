@@ -7,7 +7,6 @@ import tap_snowflake.sync_strategies.common as common
 
 from singer.schema import Schema
 
-
 try:
     import tests.utils as test_utils
 except ImportError:
@@ -15,14 +14,17 @@ except ImportError:
 
 LOGGER = singer.get_logger('tap_snowflake_tests')
 
-SCHEMA_NAME='tap_snowflake_test'
+SCHEMA_NAME = 'tap_snowflake_test'
 
 SINGER_MESSAGES = []
+
 
 def accumulate_singer_messages(message):
     SINGER_MESSAGES.append(message)
 
+
 singer.write_message = accumulate_singer_messages
+
 
 class TestTypeMapping(unittest.TestCase):
 
@@ -181,10 +183,10 @@ class TestTypeMapping(unittest.TestCase):
 
                 # Convert the exported data to singer JSON
                 record_message = common.row_to_singer_record(catalog_entry=catalog_entry,
-                                                            version=1,
-                                                            row=row,
-                                                            columns=columns,
-                                                            time_extracted=singer.utils.now())
+                                                             version=1,
+                                                             row=row,
+                                                             columns=columns,
+                                                             time_extracted=singer.utils.now())
 
                 # Convert to formatted JSON
                 formatted_record = singer.messages.format_message(record_message)
@@ -193,21 +195,21 @@ class TestTypeMapping(unittest.TestCase):
                 self.assertEquals(json.loads(formatted_record)['type'], 'RECORD')
                 self.assertEquals(json.loads(formatted_record)['stream'], 'TEST_TYPE_MAPPING')
                 self.assertEquals(json.loads(formatted_record)['record'],
-                    {
-                        'C_PK': 1,
-                        'C_DECIMAL': 12345,
-                        'C_DECIMAL_2': 123456789.12,
-                        'C_SMALLINT': 123,
-                        'C_INT': 12345,
-                        'C_BIGINT': 1234567890,
-                        'C_FLOAT': 123.123,
-                        'C_DOUBLE': 123.123,
-                        'C_DATE': '2019-08-01T00:00:00+00:00',
-                        'C_DATETIME': '2019-08-01T17:23:59+00:00',
-                        'C_TIME': '17:23:59',
-                        'C_BINARY': '62696E617279',
-                        'C_VARBINARY': '76617262696E617279'
-                    })
+                                  {
+                                      'C_PK': 1,
+                                      'C_DECIMAL': 12345,
+                                      'C_DECIMAL_2': 123456789.12,
+                                      'C_SMALLINT': 123,
+                                      'C_INT': 12345,
+                                      'C_BIGINT': 1234567890,
+                                      'C_FLOAT': 123.123,
+                                      'C_DOUBLE': 123.123,
+                                      'C_DATE': '2019-08-01T00:00:00+00:00',
+                                      'C_DATETIME': '2019-08-01T17:23:59+00:00',
+                                      'C_TIME': '17:23:59',
+                                      'C_BINARY': '62696E617279',
+                                      'C_VARBINARY': '76617262696E617279'
+                                  })
 
 
 class TestSelectsAppropriateColumns(unittest.TestCase):
@@ -225,4 +227,3 @@ class TestSelectsAppropriateColumns(unittest.TestCase):
         self.assertEqual(got_cols,
                          set(['a', 'c']),
                          'Keep automatic as well as selected, available columns.')
-
