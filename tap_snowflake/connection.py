@@ -8,6 +8,10 @@ import snowflake.connector
 LOGGER = singer.get_logger('tap_snowflake')
 
 
+class TooManyRecordsException(Exception):
+    """Exception to raise when query returns more records than max_records"""
+
+
 def retry_pattern():
     """Retry pattern decorator used when connecting to snowflake
     """
@@ -79,17 +83,30 @@ class SnowflakeConnection:
         return self.open_connection()
 
 
-    def query(self, query, params=None):
+    def query(self, query, params=None, max_records=0):
         """Run a query in snowflake"""
-        LOGGER.info('SNOWFLAKE - Running query: %s', query)
+        result = []
         with self.connect_with_backoff() as connection:
             with connection.cursor(snowflake.connector.DictCursor) as cur:
-                cur.execute(
-                    query,
-                    params
-                )
+                queries = []
 
-                if cur.rowcount > 0:
-                    return cur.fetchall()
+                # Run every query in one transaction if query is a list of SQL
+                if isinstance(query, list):
+                    queries.append("START TRANSACTION")
+                    queries.extend(query)
+                else:
+                    queries = [query]
 
-                return []
+                for sql in queries:
+                    LOGGER.debug('SNOWFLAKE - Running query: %s', sql)
+                    cur.execute(sql, params)
+
+                    # Raise exception if returned rows greater than max allowed records
+                    if 0 < max_records < cur.rowcount:
+                        raise TooManyRecordsException(
+                            f"Query returned too many records. This query can return max {max_records} records")
+
+                    if cur.rowcount > 0:
+                        result = cur.fetchall()
+
+        return result
