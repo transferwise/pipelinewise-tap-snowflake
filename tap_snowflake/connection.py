@@ -92,7 +92,7 @@ class SnowflakeConnection:
 
                 # Run every query in one transaction if query is a list of SQL
                 if isinstance(query, list):
-                    queries.append("START TRANSACTION")
+                    queries.append('START TRANSACTION')
                     queries.extend(query)
                 else:
                     queries = [query]
@@ -104,7 +104,7 @@ class SnowflakeConnection:
                     # Raise exception if returned rows greater than max allowed records
                     if 0 < max_records < cur.rowcount:
                         raise TooManyRecordsException(
-                            f"Query returned too many records. This query can return max {max_records} records")
+                            f'Query returned too many records. This query can return max {max_records} records')
 
                     if cur.rowcount > 0:
                         result = cur.fetchall()
