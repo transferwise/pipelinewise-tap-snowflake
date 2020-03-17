@@ -25,7 +25,7 @@ from tap_snowflake.connection import SnowflakeConnection
 LOGGER = singer.get_logger('tap_snowflake')
 
 # Max number of rows that a SHOW SCHEMAS|TABLES|COLUMNS can return.
-# If more than this number of returned tap-snowflake raise TooManyRecordsException
+# If more than this number of rows returned then tap-snowflake will raise TooManyRecordsException
 SHOW_COMMAND_MAX_ROWS = 9999
 
 
