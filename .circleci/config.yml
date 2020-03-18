@@ -13,7 +13,13 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip
             pip install .[test]
-
+      
+      - run:
+          name: Check dependencies for conflict
+          command: |
+            . venv/bin/activate
+            pip check
+            
       - run:
           name: 'Check code formatting and do pylinting'
           command: |
