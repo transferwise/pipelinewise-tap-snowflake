@@ -18,7 +18,7 @@ jobs:
           name: Check dependencies for conflict
           command: |
             . venv/bin/activate
-            pip check
+            pip check && echo "No conflicts" || exit 1
             
       - run:
           name: 'Check code formatting and do pylinting'
