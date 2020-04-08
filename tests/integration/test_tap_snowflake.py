@@ -90,7 +90,7 @@ class TestTypeMapping(unittest.TestCase):
         # Discover catalog object including only TEST_TYPE_MAPPING table to run detailed tests later
         cls.dt_catalog = test_utils.discover_catalog(
             cls.snowflake_conn,
-            {'tables': f"{SCHEMA_NAME}.test_type_mapping"})
+            {'tables': f'{SCHEMA_NAME}.test_type_mapping'})
 
         cls.dt_stream = cls.dt_catalog.streams[0]
         cls.dt_schema = cls.dt_catalog.streams[0].schema

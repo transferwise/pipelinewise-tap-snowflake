@@ -133,7 +133,7 @@ def get_table_columns(snowflake_conn, tables):
         LOGGER.info('Getting column information for %s...', table)
 
         # Get column data types by SHOW commands
-        show_columns = f"SHOW COLUMNS IN TABLE {table}"
+        show_columns = f'SHOW COLUMNS IN TABLE {table}'
 
         # Convert output of SHOW commands to tables and use SQL joins to get every required information
         select = f"""
