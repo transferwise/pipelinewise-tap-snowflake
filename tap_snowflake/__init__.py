@@ -47,7 +47,8 @@ REQUIRED_CONFIG_KEYS = [
     'dbname',
     'user',
     'password',
-    'warehouse'
+    'warehouse',
+    'tables'
 ]
 
 # Snowflake data types
@@ -118,138 +119,60 @@ def create_column_metadata(cols):
     return metadata.to_list(mdata)
 
 
-def get_databases(snowflake_conn):
-    """Get snowflake databases"""
-    databases = snowflake_conn.query('SHOW DATABASES', max_records=SHOW_COMMAND_MAX_ROWS)
+def get_table_columns(snowflake_conn, tables):
+    """Get column definitions of a list of tables
 
-    # Return only the name of databases as a list
-    return [db['name'] for db in databases]
-
-
-def get_schemas(snowflake_conn, database):
-    """Get schemas of a database"""
-    schemas = []
-    try:
-        schemas = snowflake_conn.query(f'SHOW SCHEMAS IN DATABASE {database}', max_records=SHOW_COMMAND_MAX_ROWS)
-
-        # Get only the name of schemas as a list
-        schemas = [schema['name'] for schema in schemas]
-
-    # Catch exception when schema not exists and SHOW SCHEMAS throws a ProgrammingError
-    # Regexp to extract snowflake error code and message from the exception message
-    # Do nothing if schema not exists
-    except snowflake.connector.errors.ProgrammingError as exc:
-        # pylint: disable=anomalous-backslash-in-string
-        if re.match('.*\(02000\):.*\n.*does not exist.*', str(sys.exc_info()[1])):
-            pass
-        else:
-            raise exc
-
-    return schemas
-
-
-def get_table_columns(snowflake_conn, database, table_schemas=None, table_name=None):
-    """Get column definitions for every table in specific schemas(s)
-
-       It's using SHOW commands instead of INFORMATION_SCHEMA views bucause information_schemas views are slow
+       It's using SHOW commands instead of INFORMATION_SCHEMA views because information_schemas views are slow
        and can cause unexpected exception of:
             Information schema query returned too much data. Please repeat query with more selective predicates.
     """
     table_columns = []
-    if table_schemas or table_name:
-        for schema in table_schemas:
-            queries = []
+    for table in tables:
+        queries = []
 
-            LOGGER.info('Getting schema information for %s.%s...', database, schema)
+        LOGGER.info('Getting column information for %s...', table)
 
-            # Get column data types by SHOW commands
-            show_tables = f'SHOW TABLES IN SCHEMA {database}.{schema}'
-            show_views = f'SHOW TABLES IN SCHEMA {database}.{schema}'
-            show_columns = f'SHOW COLUMNS IN SCHEMA {database}.{schema}'
+        # Get column data types by SHOW commands
+        show_columns = f"SHOW COLUMNS IN TABLE {table}"
 
-            # Convert output of SHOW commands to tables and use SQL joins to get every required information
-            select = f"""
-                WITH
-                  show_tables   AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-3)))),
-                  show_views    AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-2)))),
-                  show_columns  AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-1))))
-                SELECT show_columns."database_name"     AS table_catalog
-                      ,show_columns."schema_name"       AS table_schema
-                      ,show_columns."table_name"        AS table_name
-                      ,CASE
-                         WHEN show_tables."name" IS NOT NULL THEN 'BASE TABLE'
-                         ELSE 'VIEW'
-                       END table_type
-                      ,show_tables."rows"               AS row_count
-                      ,show_columns."column_name"       AS column_name
-                      -- ----------------------------------------------------------------------------------------
-                      -- Character and numeric columns display their generic data type rather than their defined
-                      -- data type (i.e. TEXT for all character types, FIXED for all fixed-point numeric types,
-                      -- and REAL for all floating-point numeric types).
-                      --
-                      -- Further info at https://docs.snowflake.net/manuals/sql-reference/sql/show-columns.html
-                      -- ----------------------------------------------------------------------------------------
-                      ,CASE PARSE_JSON(show_columns."data_type"):type::varchar
-                         WHEN 'FIXED' THEN 'NUMBER'
-                         WHEN 'REAL'  THEN 'FLOAT'
-                         ELSE PARSE_JSON("data_type"):type::varchar
-                       END data_type
-                      ,PARSE_JSON(show_columns."data_type"):length::number      AS character_maximum_length
-                      ,PARSE_JSON(show_columns."data_type"):precision::number   AS numeric_precision
-                      ,PARSE_JSON(show_columns."data_type"):scale::number       AS numeric_scale
-                  FROM show_columns
-                       LEFT JOIN show_tables
-                              ON show_tables."database_name" = show_columns."database_name"
-                             AND show_tables."schema_name"   = show_columns."schema_name"
-                             AND show_tables."name"          = show_columns."table_name"
-                       LEFT JOIN show_views
-                              ON show_views."database_name" = show_columns."database_name"
-                             AND show_views."schema_name"   = show_columns."schema_name"
-                             AND show_views."name"          = show_columns."table_name"
-            """
-            queries.extend([show_tables, show_views, show_columns, select])
+        # Convert output of SHOW commands to tables and use SQL joins to get every required information
+        select = f"""
+            WITH
+              show_columns  AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-1))))
+            SELECT show_columns."database_name"     AS table_catalog
+                  ,show_columns."schema_name"       AS table_schema
+                  ,show_columns."table_name"        AS table_name
+                  ,show_columns."column_name"       AS column_name
+                  -- ----------------------------------------------------------------------------------------
+                  -- Character and numeric columns display their generic data type rather than their defined
+                  -- data type (i.e. TEXT for all character types, FIXED for all fixed-point numeric types,
+                  -- and REAL for all floating-point numeric types).
+                  --
+                  -- Further info at https://docs.snowflake.net/manuals/sql-reference/sql/show-columns.html
+                  -- ----------------------------------------------------------------------------------------
+                  ,CASE PARSE_JSON(show_columns."data_type"):type::varchar
+                     WHEN 'FIXED' THEN 'NUMBER'
+                     WHEN 'REAL'  THEN 'FLOAT'
+                     ELSE PARSE_JSON("data_type"):type::varchar
+                   END data_type
+                  ,PARSE_JSON(show_columns."data_type"):length::number      AS character_maximum_length
+                  ,PARSE_JSON(show_columns."data_type"):precision::number   AS numeric_precision
+                  ,PARSE_JSON(show_columns."data_type"):scale::number       AS numeric_scale
+              FROM show_columns
+        """
+        queries.extend([show_columns, select])
 
-            # Run everything in one transaction
-            try:
-                columns = snowflake_conn.query(queries, max_records=SHOW_COMMAND_MAX_ROWS)
-                table_columns.extend(columns)
-
-            # Catch exception when schema not exists and SHOW COLUMNS throws a ProgrammingError
-            # Regexp to extract snowflake error code and message from the exception message
-            # Do nothing if schema not exists
-            except snowflake.connector.errors.ProgrammingError as exc:
-                # pylint: disable=anomalous-backslash-in-string
-                if re.match('.*\(02000\):.*\n.*does not exist.*', str(sys.exc_info()[1])):
-                    pass
-                else:
-                    raise exc
+        # Run everything in one transaction
+        columns = snowflake_conn.query(queries, max_records=SHOW_COMMAND_MAX_ROWS)
+        table_columns.extend(columns)
 
     return table_columns
 
 
 def discover_catalog(snowflake_conn, config):
     """Returns a Catalog describing the structure of the database."""
-    filter_dbs_config = config.get('filter_dbs')
-    filter_schemas_config = config.get('filter_schemas')
-    databases = []
-    schemas = []
-
-    # Get databases
-    sql_columns = []
-    if filter_dbs_config:
-        databases = filter_dbs_config.split(',')
-    else:
-        databases = get_databases(snowflake_conn)
-    for database in databases:
-
-        # Get schemas
-        if filter_schemas_config:
-            schemas = filter_schemas_config.split(',')
-        else:
-            schemas = get_schemas(snowflake_conn, database)
-
-        table_columns = get_table_columns(snowflake_conn, database, schemas)
-        sql_columns.extend(table_columns)
+    tables = config.get('tables').split(',')
+    sql_columns = get_table_columns(snowflake_conn, tables)
 
     table_info = {}
     columns = []
