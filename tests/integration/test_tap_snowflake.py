@@ -1,6 +1,8 @@
+import os
 import unittest
 import json
 import singer
+import snowflake.connector
 
 import tap_snowflake
 import tap_snowflake.sync_strategies.common as common
@@ -68,110 +70,175 @@ class TestTypeMapping(unittest.TestCase):
                       ,HEX_ENCODE('varbinary')
                 '''.format(SCHEMA_NAME))
 
-        catalog = test_utils.discover_catalog(cls.snowflake_conn)
-        cls.stream = catalog.streams[0]
-        cls.schema = catalog.streams[0].schema
-        cls.metadata = catalog.streams[0].metadata
+                cur.execute('''
+                CREATE TABLE {}.empty_table_1 (
+                c_pk INTEGER PRIMARY KEY,
+                c_int INT
+                )'''.format(SCHEMA_NAME))
 
-    def get_metadata_for_column(self, colName):
-        return next(md for md in self.metadata if md['breadcrumb'] == ('properties', colName))['metadata']
+                cur.execute('''
+                CREATE TABLE {}.empty_table_2 (
+                c_pk INTEGER PRIMARY KEY,
+                c_int INT
+                )'''.format(SCHEMA_NAME))
+
+                cur.execute('''
+                CREATE VIEW {}.empty_view_1 AS
+                SELECT c_pk, c_int FROM {}.empty_table_1
+                '''.format(SCHEMA_NAME, SCHEMA_NAME))
+
+        # Discover catalog object including only TEST_TYPE_MAPPING table to run detailed tests later
+        cls.dt_catalog = test_utils.discover_catalog(
+            cls.snowflake_conn,
+            {'tables': f"{SCHEMA_NAME}.test_type_mapping"})
+
+        cls.dt_stream = cls.dt_catalog.streams[0]
+        cls.dt_schema = cls.dt_catalog.streams[0].schema
+        cls.dt_metadata = cls.dt_catalog.streams[0].metadata
+
+    def get_dt_metadata_for_column(self, col_name):
+        """Helper function to get metadata entry from catalog with TEST_TYPE_MAPPING table"""
+        return next(md for md in self.dt_metadata if md['breadcrumb'] == ('properties', col_name))['metadata']
+
+    def test_discover_catalog_with_multiple_table(self):
+        """Validate if discovering catalog with filter_tables option working as expected"""
+        # Create config to discover three tables
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {'tables': f'{SCHEMA_NAME}.empty_table_1,{SCHEMA_NAME}.empty_table_2,{SCHEMA_NAME}.test_type_mapping'})
+
+        # Three tables should be discovered
+        tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
+        self.assertCountEqual(tap_stream_ids,
+                              ['ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_1',
+                               'ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2',
+                               'ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-TEST_TYPE_MAPPING'])
+
+    def test_discover_catalog_with_single_table(self):
+        """Validate if discovering catalog with filter_tables option working as expected"""
+        # Create config to discover only one table
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_table_2'})
+
+        # Only one table should be discovered
+        tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
+        self.assertCountEqual(tap_stream_ids,
+                              ['ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2'])
+
+    def test_discover_catalog_with_not_existing_table(self):
+        """Validate if discovering catalog raises as exception when table not exist"""
+        # Create config to discover a not existing table
+        with self.assertRaises(snowflake.connector.errors.ProgrammingError):
+            test_utils.discover_catalog(
+                self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_table_2,{SCHEMA_NAME}.not_existing_table'})
+
+    def test_discover_catalog_with_view(self):
+        """Validate if discovering catalog with filter_tables option working as expected"""
+        # Create config to discover only one view
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_view_1'})
+
+        # Only one view should be discovered
+        tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
+        self.assertCountEqual(tap_stream_ids,
+                              ['ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_VIEW_1'])
 
     def test_decimal(self):
-        self.assertEqual(self.schema.properties['C_DECIMAL'],
+        self.assertEqual(self.dt_schema.properties['C_DECIMAL'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_DECIMAL'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_DECIMAL'),
                          {'selected-by-default': True,
                           'sql-datatype': 'number'})
 
     def test_decimal_with_defined_scale_and_precision(self):
-        self.assertEqual(self.schema.properties['C_DECIMAL_2'],
+        self.assertEqual(self.dt_schema.properties['C_DECIMAL_2'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_DECIMAL_2'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_DECIMAL_2'),
                          {'selected-by-default': True,
                           'sql-datatype': 'number'})
 
     def test_smallint(self):
-        self.assertEqual(self.schema.properties['C_SMALLINT'],
+        self.assertEqual(self.dt_schema.properties['C_SMALLINT'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_SMALLINT'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_SMALLINT'),
                          {'selected-by-default': True,
                           'sql-datatype': 'number'})
 
     def test_int(self):
-        self.assertEqual(self.schema.properties['C_INT'],
+        self.assertEqual(self.dt_schema.properties['C_INT'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_INT'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_INT'),
                          {'selected-by-default': True,
                           'sql-datatype': 'number'})
 
     def test_bigint(self):
-        self.assertEqual(self.schema.properties['C_BIGINT'],
+        self.assertEqual(self.dt_schema.properties['C_BIGINT'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_BIGINT'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_BIGINT'),
                          {'selected-by-default': True,
                           'sql-datatype': 'number'})
 
     def test_float(self):
-        self.assertEqual(self.schema.properties['C_FLOAT'],
+        self.assertEqual(self.dt_schema.properties['C_FLOAT'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_FLOAT'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_FLOAT'),
                          {'selected-by-default': True,
                           'sql-datatype': 'float'})
 
     def test_double(self):
-        self.assertEqual(self.schema.properties['C_DOUBLE'],
+        self.assertEqual(self.dt_schema.properties['C_DOUBLE'],
                          Schema(['null', 'number'],
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_DOUBLE'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_DOUBLE'),
                          {'selected-by-default': True,
                           'sql-datatype': 'float'})
 
     def test_date(self):
-        self.assertEqual(self.schema.properties['C_DATE'],
+        self.assertEqual(self.dt_schema.properties['C_DATE'],
                          Schema(['null', 'string'],
                                 format='date-time',
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_DATE'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_DATE'),
                          {'selected-by-default': True,
                           'sql-datatype': 'date'})
 
     def test_time(self):
-        self.assertEqual(self.schema.properties['C_TIME'],
+        self.assertEqual(self.dt_schema.properties['C_TIME'],
                          Schema(['null', 'string'],
                                 format='time',
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_TIME'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_TIME'),
                          {'selected-by-default': True,
                           'sql-datatype': 'time'})
 
     def test_binary(self):
-        self.assertEqual(self.schema.properties['C_BINARY'],
+        self.assertEqual(self.dt_schema.properties['C_BINARY'],
                          Schema(['null', 'string'],
                                 format='binary',
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_BINARY'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_BINARY'),
                          {'selected-by-default': True,
                           'sql-datatype': 'binary'})
 
     def test_varbinary(self):
-        self.assertEqual(self.schema.properties['C_VARBINARY'],
+        self.assertEqual(self.dt_schema.properties['C_VARBINARY'],
                          Schema(['null', 'string'],
                                 format='binary',
                                 inclusion='available'))
-        self.assertEqual(self.get_metadata_for_column('C_VARBINARY'),
+        self.assertEqual(self.get_dt_metadata_for_column('C_VARBINARY'),
                          {'selected-by-default': True,
                           'sql-datatype': 'binary'})
 
     def test_row_to_singer_record(self):
         """Select every supported data type from snowflake,
         generate the singer JSON output message and compare to expected JSON"""
-        catalog_entry = self.stream
+        catalog_entry = self.dt_stream
         columns = list(catalog_entry.schema.properties.keys())
         select_sql = common.generate_select_sql(catalog_entry, columns)
 

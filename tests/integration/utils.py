@@ -7,23 +7,16 @@ from tap_snowflake.connection import SnowflakeConnection
 
 SCHEMA_NAME='tap_snowflake_test'
 
+
 def get_db_config():
-    config = {}
-    config['account'] = os.environ.get('TAP_SNOWFLAKE_ACCOUNT')
-    config['dbname'] = os.environ.get('TAP_SNOWFLAKE_DBNAME')
-    config['user'] = os.environ.get('TAP_SNOWFLAKE_USER')
-    config['password'] = os.environ.get('TAP_SNOWFLAKE_PASSWORD')
-    config['warehouse'] = os.environ.get('TAP_SNOWFLAKE_WAREHOUSE')
-
-    return config
-
-
-def get_tap_config():
-    config = {}
-    config['filter_dbs'] = os.environ.get('TAP_SNOWFLAKE_DBNAME')
-    config['filter_schemas'] = SCHEMA_NAME
-
-    return config
+    return {
+        'account': os.environ.get('TAP_SNOWFLAKE_ACCOUNT'),
+        'dbname': os.environ.get('TAP_SNOWFLAKE_DBNAME'),
+        'user': os.environ.get('TAP_SNOWFLAKE_USER'),
+        'password': os.environ.get('TAP_SNOWFLAKE_PASSWORD'),
+        'warehouse': os.environ.get('TAP_SNOWFLAKE_WAREHOUSE'),
+        'tables': 'FAKE_TABLES'
+    }
 
 
 def get_test_connection():
@@ -41,9 +34,8 @@ def get_test_connection():
     return snowflake_conn
 
 
-def discover_catalog(snowflake_conn):
-    tap_config = get_tap_config()
-    catalog = tap_snowflake.discover_catalog(snowflake_conn, tap_config)
+def discover_catalog(snowflake_conn, config):
+    catalog = tap_snowflake.discover_catalog(snowflake_conn, config)
     streams = []
 
     for stream in catalog.streams:

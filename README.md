@@ -47,12 +47,15 @@ or
      "user": "my_user",
      "password": "password",
      "warehouse": "my_virtual_warehouse",
-     "filter_dbs": "database_name",
-     "filter_schemas": "schema1,schema2"
+     "tables": "db.schema.table1,db.schema.table2"
    }
    ```
 
-`filter_dbs` and `filter_schemas` are optional.
+**Note**: `tables` is a mandatory parameter as well to avoid long running catalog discovery process.
+Please specify fully qualified table and view names and only that ones that you need to extract otherwise you can
+end up with very long running discovery mode of this tap. Discovery mode is analysing table structures but
+Snowflake doesn't like selecting lot of rows from `INFORMATION_SCHEMA` or running `SHOW` commands that returns lot of
+rows. Please be as specific as possible.
 
 2. Run it in discovery mode to generate a `properties.json`
 
