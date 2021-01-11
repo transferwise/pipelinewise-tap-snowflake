@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from typing import Union, List, Dict
 
 import backoff
 import singer
@@ -63,7 +64,6 @@ class SnowflakeConnection:
             LOGGER.error('Invalid configuration:\n   * %s', '\n   * '.join(config_errors))
             sys.exit(1)
 
-
     def open_connection(self):
         """Connect to snowflake database"""
         return snowflake.connector.connect(
@@ -74,33 +74,45 @@ class SnowflakeConnection:
             warehouse=self.connection_config['warehouse'],
             insecure_mode=self.connection_config.get('insecure_mode', False)
             # Use insecure mode to avoid "Failed to get OCSP response" warnings
-            #insecure_mode=True
+            # insecure_mode=True
         )
-
 
     @retry_pattern()
     def connect_with_backoff(self):
         """Connect to snowflake database and retry automatically a few times if fails"""
         return self.open_connection()
 
-
-    def query(self, query, params=None, max_records=0):
+    def query(self, query: Union[List[str], str], params: Dict = None, max_records=0):
         """Run a query in snowflake"""
         result = []
+
+        if params is None:
+            params = {}
+        else:
+            if 'LAST_QID' in params:
+                LOGGER.warning('LAST_QID is a reserved prepared statement parameter name, '
+                               'it will be overridden with each executed query!')
+
         with self.connect_with_backoff() as connection:
             with connection.cursor(snowflake.connector.DictCursor) as cur:
-                queries = []
 
                 # Run every query in one transaction if query is a list of SQL
                 if isinstance(query, list):
-                    queries.append('START TRANSACTION')
-                    queries.extend(query)
+                    cur.execute('START TRANSACTION')
+                    queries = query
                 else:
                     queries = [query]
 
+                qid = None
+
                 for sql in queries:
-                    LOGGER.debug('SNOWFLAKE - Running query: %s', sql)
+                    LOGGER.debug('Running query: %s', sql)
+
+                    # update the LAST_QID
+                    params['LAST_QID'] = qid
+
                     cur.execute(sql, params)
+                    qid = cur.sfqid
 
                     # Raise exception if returned rows greater than max allowed records
                     if 0 < max_records < cur.rowcount:

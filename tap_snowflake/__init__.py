@@ -138,7 +138,7 @@ def get_table_columns(snowflake_conn, tables):
         # Convert output of SHOW commands to tables and use SQL joins to get every required information
         select = f"""
             WITH
-              show_columns  AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-1))))
+              show_columns  AS (SELECT * FROM TABLE(RESULT_SCAN(%(LAST_QID)s)))
             SELECT show_columns."database_name"     AS table_catalog
                   ,show_columns."schema_name"       AS table_schema
                   ,show_columns."table_name"        AS table_name
