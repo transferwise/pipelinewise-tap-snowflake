@@ -22,7 +22,6 @@ setup(name='pipelinewise-tap-snowflake',
             'snowflake-connector-python==2.3.7',
             'pyarrow==0.17.0',
             'pandas==1.0.5',
-            'backoff==1.10.0',
             'pendulum==1.2.0',
             'python-dateutil<2.8.1,>=2.1'
       ],
