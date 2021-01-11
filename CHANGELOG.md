@@ -1,3 +1,9 @@
+2.0.3 (2021-01-11)
+-------------------
+
+- Stop using `LAST_QUERY_ID()` Snowflake function
+- Bumping dependencies
+
 2.0.2 (2020-12-04)
 -------------------
 
