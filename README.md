@@ -148,12 +148,12 @@ view/table being replicated.
   . venv/bin/activate
   pip install --upgrade pip
   pip install .
-  pip install nose
+  pip install tox
 ```
 
 3. To run unit tests:
 ```
-  nosetests
+  tox
 ```
 
 ## License
