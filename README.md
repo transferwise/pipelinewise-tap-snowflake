@@ -84,16 +84,52 @@ source table directly corresponds to a Singer stream.
 
 The two ways to replicate a given table are `FULL_TABLE` and `INCREMENTAL`.
 
+Note: Discovery does not include these values in the output catalog, you must add them to
+the metadata of the configured tables.
+
 ### Full Table
 
 Full-table replication extracts all data from the source table each time the tap
 is invoked.
+
+```
+  "metadata": {
+    "replication-method": "FULL_TABLE",
+    "selected-by-default": false,
+    "database-name": "DB_123",
+    "schema-name": "SCHEMA_456",
+    "row-count": 0,
+    "is-view": false,
+    "selected": true
+  }
+```
 
 ### Incremental
 
 Incremental replication works in conjunction with a state file to only extract
 new records each time the tap is invoked. This requires a replication key to be
 specified in the table's metadata as well.
+
+Below is an example of an incremental sync setting for a view. Replication is based on source
+data with `UPDATED_DATE` that's `>=` to the current bookmarked value provided in the state.json
+file. `view-key-properties` or `table-key-properties` defines the key properties associated with the
+view/table being replicated.
+
+```
+  "metadata": {
+    "view-key-properties": [
+      "ID"
+    ],
+    "replication-key": "UPDATED_DATE",
+    "replication-method": "INCREMENTAL",
+    "selected-by-default": false,
+    "database-name": "DB_123",
+    "schema-name": "SCHEMA_456",
+    "row-count": 0,
+    "is-view": true,
+    "selected": true
+  }
+```
 
 ### To run tests:
 

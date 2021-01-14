@@ -10,6 +10,7 @@ LOGGER = singer.get_logger('tap_snowflake')
 
 BOOKMARK_KEYS = {'replication_key', 'replication_key_value', 'version'}
 
+
 def sync_table(snowflake_conn, catalog_entry, state, columns):
     """Sync table incrementally"""
     common.whitelist_bookmark_keys(BOOKMARK_KEYS, catalog_entry.tap_stream_id, state)
