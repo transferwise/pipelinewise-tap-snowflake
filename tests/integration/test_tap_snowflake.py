@@ -280,6 +280,57 @@ class TestTypeMapping(unittest.TestCase):
                                       'C_VARBINARY': '76617262696E617279'
                                   })
 
+    def test_discover_catalog_with_strategy_defined(self):
+        """Validate if discovering catalog adds the sync strategy and incrementing col if provided"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{SCHEMA_NAME}.empty_table_1',
+                'metadata': {
+                    f'{SCHEMA_NAME}.empty_table_1': {
+                        'table-key-properties': ['keys'],
+                        'replication-key': 'column1',
+                        'replication-method': 'INCREMENTAL',
+                        'selected': True
+                    }
+                }
+            }
+        )
+
+        stream = catalog.streams[0]
+        stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
+        self.assertCountEqual(
+            stream_metadata,
+            {
+                'table-key-properties': ['keys'],
+                'replication-key': 'column1',
+                'replication-method': 'INCREMENTAL',
+                'selected-by-default': False,
+                'database-name': f'{DB_NAME}',
+                'schema-name': f'{SCHEMA_NAME}',
+                'row-count': 0,
+                'is-view': False,
+                'selected': True
+            }
+        )
+
+    def test_discover_catalog_without_strategy_defined(self):
+        """Validate if discovering catalog excludes sync strategy if not configured"""
+        catalog = test_utils.discover_catalog(self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_table_1'})
+
+        # table should be discovered
+        stream = catalog.streams[0]
+        stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
+        self.assertCountEqual(
+            stream_metadata,
+            {
+                'selected-by-default': False,
+                'database-name': f'{DB_NAME}',
+                'schema-name': f'{SCHEMA_NAME}',
+                'row-count': 0,
+                'is-view': False,
+            }
+        )
 
 class TestSelectsAppropriateColumns(unittest.TestCase):
 
