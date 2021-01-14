@@ -136,9 +136,9 @@ def get_table_columns(snowflake_conn, tables):
         show_columns = f'SHOW COLUMNS IN TABLE {table}'
 
         # Convert output of SHOW commands to tables and use SQL joins to get every required information
-        select = f"""
+        select = """
             WITH
-              show_columns  AS (SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID(-1))))
+              show_columns  AS (SELECT * FROM TABLE(RESULT_SCAN(%(LAST_QID)s)))
             SELECT show_columns."database_name"     AS table_catalog
                   ,show_columns."schema_name"       AS table_schema
                   ,show_columns."table_name"        AS table_name
@@ -432,7 +432,7 @@ def do_sync_full_table(snowflake_conn, catalog_entry, state, columns):
     singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 
 
-def sync_streams(snowflake_conn, catalog, config, state):
+def sync_streams(snowflake_conn, catalog, state):
     for catalog_entry in catalog.streams:
         columns = list(catalog_entry.schema.properties.keys())
 
@@ -471,7 +471,7 @@ def sync_streams(snowflake_conn, catalog, config, state):
 
 def do_sync(snowflake_conn, config, catalog, state):
     catalog = get_streams(snowflake_conn, catalog, config, state)
-    sync_streams(snowflake_conn, catalog, config, state)
+    sync_streams(snowflake_conn, catalog, state)
 
 
 def main_impl():
