@@ -142,7 +142,9 @@ view/table being replicated.
   export TAP_SNOWFLAKE_WAREHOUSE=<snowflake-warehouse>
 ```
 
-2. Install python dependencies in a virtual env and run nose unit and integration tests
+NOTE: User must have permission to create/drop schema (TAP_SNOWFLAKE_TEST), create/drop table, insert into those tables
+
+2. Install python dependencies in a virtual env and run unit and integration tests
 ```
   python3 -m venv venv
   . venv/bin/activate
