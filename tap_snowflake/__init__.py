@@ -234,7 +234,7 @@ def discover_catalog(snowflake_conn, config):
             md_map = metadata.write(md_map, (), 'row-count', row_count)
             md_map = metadata.write(md_map, (), 'is-view', is_view)
             # check config to see if there was optional metadata defined already
-            full_table_name = f'{table_schema}.{table_name}'.upper()
+            full_table_name = f'{catalog}.{table_schema}.{table_name}'.upper()
             if config_meta and full_table_name in config_meta:
                 table_meta = config_meta.get(full_table_name)
                 for meta_key, meta_value in table_meta.items():
