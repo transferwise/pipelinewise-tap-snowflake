@@ -282,19 +282,20 @@ class TestTypeMapping(unittest.TestCase):
 
     def test_discover_catalog_with_strategy_defined(self):
         """Validate if discovering catalog adds the sync strategy and incrementing col if provided"""
-        catalog = test_utils.discover_catalog(
-            self.snowflake_conn,
-            {
-                'tables': f'{SCHEMA_NAME}.empty_table_1',
+        config = {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.empty_table_1',
                 'metadata': {
-                    f'{SCHEMA_NAME}.empty_table_1': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.empty_table_1': {
                         'table-key-properties': ['keys'],
                         'replication-key': 'column1',
                         'replication-method': 'INCREMENTAL',
                         'selected': True
                     }
                 }
-            }
+        }
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            config
         )
 
         stream = catalog.streams[0]

@@ -51,6 +51,26 @@ or
    }
    ```
 
+Optional Metadata can be provided in the config to define the syncing strategy for tables so that auto discovery creates a fully configured catalog.
+   ```json
+   {
+      "account": "rtxxxxx.eu-central-1",
+      "dbname": "database_name",
+      "user": "my_user",
+      "password": "password",
+      "warehouse": "my_virtual_warehouse",
+      "tables": "db.schema.table1,db.schema.table2",
+      "metadata": {
+          "db.schema.table1": {
+              "table-key-properties": ["key1"],
+              "replication-key": "column1",
+              "replication-method": "INCREMENTAL",
+              "selected": true
+          }
+      }
+   }
+   ```
+
 **Note**: `tables` is a mandatory parameter as well to avoid long running catalog discovery process.
 Please specify fully qualified table and view names and only that ones that you need to extract otherwise you can
 end up with very long running discovery mode of this tap. Discovery mode is analysing table structures but

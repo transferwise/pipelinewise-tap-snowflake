@@ -171,10 +171,16 @@ def get_table_columns(snowflake_conn, tables):
     return table_columns
 
 
+def config_meta_parser(config):
+    # make sure config table names are upper case
+    return {table.upper(): data for table, data in config.get('metadata', {}).items()}
+
+
 def discover_catalog(snowflake_conn, config):
     """Returns a Catalog describing the structure of the database."""
     tables = config.get('tables').split(',')
     sql_columns = get_table_columns(snowflake_conn, tables)
+    config_meta = config_meta_parser(config)
 
     table_info = {}
     columns = []
@@ -225,9 +231,14 @@ def discover_catalog(snowflake_conn, config):
             # Row Count of views returns NULL - Transform it to not null integer by defaults to 0
             row_count = table_info[table_catalog][table_schema][table_name].get('row_count', 0) or 0
             is_view = table_info[table_catalog][table_schema][table_name]['is_view']
-
             md_map = metadata.write(md_map, (), 'row-count', row_count)
             md_map = metadata.write(md_map, (), 'is-view', is_view)
+            # check config to see if there was optional metadata defined already
+            full_table_name = f'{table_schema}.{table_name}'.upper()
+            if config_meta and full_table_name in config_meta:
+                table_meta = config_meta.get(full_table_name)
+                for meta_key, meta_value in table_meta.items():
+                    md_map = metadata.write(md_map, (), meta_key, meta_value)
 
             entry = CatalogEntry(
                 table=table_name,
