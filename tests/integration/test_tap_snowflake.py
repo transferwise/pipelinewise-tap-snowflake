@@ -16,7 +16,7 @@ except ImportError:
 
 LOGGER = singer.get_logger('tap_snowflake_tests')
 
-SCHEMA_NAME = 'tap_snowflake_test'
+SCHEMA_NAME = 'TAP_SNOWFLAKE_TEST'
 
 DB_NAME = os.environ['TAP_SNOWFLAKE_DBNAME']
 
@@ -300,7 +300,7 @@ class TestTypeMapping(unittest.TestCase):
 
         stream = catalog.streams[0]
         stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
-        self.assertCountEqual(
+        self.assertEqual(
             stream_metadata,
             {
                 'table-key-properties': ['keys'],
@@ -322,7 +322,7 @@ class TestTypeMapping(unittest.TestCase):
         # table should be discovered
         stream = catalog.streams[0]
         stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
-        self.assertCountEqual(
+        self.assertEqual(
             stream_metadata,
             {
                 'selected-by-default': False,
@@ -330,6 +330,26 @@ class TestTypeMapping(unittest.TestCase):
                 'schema-name': f'{SCHEMA_NAME}',
                 'row-count': 0,
                 'is-view': False,
+            }
+        )
+
+    def test_discover_catalog_select_all(self):
+        """Validate if discovering catalog select-all works"""
+        catalog = test_utils.discover_catalog(self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_table_1'}, select_all=True)
+
+        # table should be discovered
+        stream = catalog.streams[0]
+        stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
+        self.assertEqual(
+            stream_metadata,
+            {
+                'replication-method': 'FULL_TABLE',
+                'selected-by-default': True,
+                'database-name': f'{DB_NAME}',
+                'schema-name': f'{SCHEMA_NAME}',
+                'row-count': 0,
+                'is-view': False,
+                'selected': True
             }
         )
 

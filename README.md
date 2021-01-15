@@ -105,7 +105,8 @@ source table directly corresponds to a Singer stream.
 The two ways to replicate a given table are `FULL_TABLE` and `INCREMENTAL`.
 
 Note: Discovery does not include these values in the output catalog, you must add them to
-the metadata of the configured tables.
+the metadata of the configured tables. Alternatively if you run the tap without a catalog then
+it will auto-discover and default to full table replication unless overridden by config metadata.
 
 ### Full Table
 

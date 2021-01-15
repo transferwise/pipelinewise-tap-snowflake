@@ -34,8 +34,8 @@ def get_test_connection():
     return snowflake_conn
 
 
-def discover_catalog(snowflake_conn, config):
-    catalog = tap_snowflake.discover_catalog(snowflake_conn, config)
+def discover_catalog(snowflake_conn, config, select_all=False):
+    catalog = tap_snowflake.discover_catalog(snowflake_conn, config, select_all=select_all)
     streams = []
 
     for stream in catalog.streams:
