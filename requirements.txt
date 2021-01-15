@@ -1,4 +1,4 @@
-pipelinewise-singer-python==1.*
+pipelinewise-singer-python==1.2.0
 snowflake-connector-python[pandas]==2.3.7
 pendulum==1.2.0
 python-dateutil>=2.1,<2.8.2
