@@ -105,6 +105,17 @@ class TestTypeMapping(unittest.TestCase):
         # Create config to discover three tables
         catalog = test_utils.discover_catalog(
             self.snowflake_conn,
+            {'tables': f'{SCHEMA_NAME}.empty_table', 'stream_id_template': 'snowflake-{catalog_name}-{table_name}'})
+
+        # Three tables should be discovered
+        tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
+        self.assertCountEqual(tap_stream_ids, ['SNOWFLAKE-TAP_SNOWFLAKE_TEST-EMPTY_TABLE'])
+
+    def test_discover_catalog_with_multiple_table(self):
+        """Validate if discovering catalog with filter_tables option working as expected"""
+        # Create config to discover three tables
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
             {'tables': f'{SCHEMA_NAME}.empty_table_1,{SCHEMA_NAME}.empty_table_2,{SCHEMA_NAME}.test_type_mapping'})
 
         # Three tables should be discovered

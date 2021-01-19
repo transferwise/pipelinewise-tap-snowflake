@@ -47,7 +47,8 @@ or
      "user": "my_user",
      "password": "password",
      "warehouse": "my_virtual_warehouse",
-     "tables": "db.schema.table1,db.schema.table2"
+     "tables": "db.schema.table1,db.schema.table2",
+     "stream_id_template": "{catalog_name}-{schema_name}-{table_name}"
    }
    ```
 

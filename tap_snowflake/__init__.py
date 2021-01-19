@@ -173,6 +173,7 @@ def discover_catalog(snowflake_conn, config):
     """Returns a Catalog describing the structure of the database."""
     tables = config.get('tables').split(',')
     sql_columns = get_table_columns(snowflake_conn, tables)
+    stream_id_template = config.get('stream_id_template', '{catalog_name}-{schema_name}-{table_name}')
 
     table_info = {}
     columns = []
@@ -231,7 +232,7 @@ def discover_catalog(snowflake_conn, config):
                 table=table_name,
                 stream=table_name,
                 metadata=metadata.to_list(md_map),
-                tap_stream_id=common.generate_tap_stream_id(table_catalog, table_schema, table_name),
+                tap_stream_id=common.generate_tap_stream_id(stream_id_template, table_catalog, table_schema, table_name),
                 schema=schema)
 
             entries.append(entry)

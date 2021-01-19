@@ -20,9 +20,9 @@ def escape(string):
     return '"{}"'.format(string)
 
 
-def generate_tap_stream_id(catalog_name, schema_name, table_name):
+def generate_tap_stream_id(stream_id_template, catalog_name, schema_name, table_name):
     """Generate tap stream id as appears in properties.json"""
-    return catalog_name + '-' + schema_name + '-' + table_name
+    return stream_id_template.format(catalog_name=catalog_name, schema_name=schema_name, table_name=table_name)
 
 
 def get_stream_version(tap_stream_id, state):
