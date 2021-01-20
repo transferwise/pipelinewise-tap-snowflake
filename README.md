@@ -163,7 +163,7 @@ view/table being replicated.
   export TAP_SNOWFLAKE_WAREHOUSE=<snowflake-warehouse>
 ```
 
-NOTE: User must have permission to create/drop schema (TAP_SNOWFLAKE_TEST), create/drop table, insert into those tables
+NOTE: User must have permission to create/drop schema (TAP_SNOWFLAKE_TEST), create/drop table, insert into those tables. DEG's implementation uses DATA_DEG_TEST.TAP_SNOWFLAKE_TEST - credentials are in the 1Pass vault.
 
 2. Install python dependencies in a virtual env and run unit and integration tests
 ```
