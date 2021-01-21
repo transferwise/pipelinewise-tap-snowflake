@@ -9,7 +9,7 @@ with open('requirements.txt', 'r') as fh:
     requirements = fh.read().splitlines()
 
 setup(name='pipelinewise-tap-snowflake',
-      version='2.0.3',
+      version='2.1.0',
       description='Singer.io tap for extracting data from Snowflake - PipelineWise compatible',
       long_description=long_description,
       long_description_content_type='text/markdown',
