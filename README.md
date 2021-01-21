@@ -51,6 +51,26 @@ or
    }
    ```
 
+Optional Metadata can be provided in the config to define the syncing strategy for tables so that auto discovery creates a fully configured catalog.
+   ```json
+   {
+      "account": "rtxxxxx.eu-central-1",
+      "dbname": "database_name",
+      "user": "my_user",
+      "password": "password",
+      "warehouse": "my_virtual_warehouse",
+      "tables": "db.schema.table1,db.schema.table2",
+      "metadata": {
+          "db.schema.table1": {
+              "table-key-properties": ["key1"],
+              "replication-key": "column1",
+              "replication-method": "INCREMENTAL",
+              "selected": true
+          }
+      }
+   }
+   ```
+
 **Note**: `tables` is a mandatory parameter as well to avoid long running catalog discovery process.
 Please specify fully qualified table and view names and only that ones that you need to extract otherwise you can
 end up with very long running discovery mode of this tap. Discovery mode is analysing table structures but
@@ -85,7 +105,8 @@ source table directly corresponds to a Singer stream.
 The two ways to replicate a given table are `FULL_TABLE` and `INCREMENTAL`.
 
 Note: Discovery does not include these values in the output catalog, you must add them to
-the metadata of the configured tables.
+the metadata of the configured tables. Alternatively if you run the tap without a catalog then
+it will auto-discover and default to full table replication unless overridden by config metadata.
 
 ### Full Table
 
@@ -142,7 +163,7 @@ view/table being replicated.
   export TAP_SNOWFLAKE_WAREHOUSE=<snowflake-warehouse>
 ```
 
-NOTE: User must have permission to create/drop schema (TAP_SNOWFLAKE_TEST), create/drop table, insert into those tables
+NOTE: User must have permission to create/drop schema (TAP_SNOWFLAKE_TEST), create/drop table, insert into those tables. DEG's implementation uses DATA_DEG_TEST.TAP_SNOWFLAKE_TEST - credentials are in the 1Pass vault.
 
 2. Install python dependencies in a virtual env and run unit and integration tests
 ```
