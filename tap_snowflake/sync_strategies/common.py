@@ -12,6 +12,7 @@ from singer import utils
 
 LOGGER = singer.get_logger('tap_snowflake')
 
+
 def escape(string):
     """Escape strings to be SQL safe"""
     if '"' in string:
@@ -215,7 +216,7 @@ def sync_query(cursor, catalog_entry, state, select_sql, columns, stream_version
                                                     'max_pk_values')
 
                 if max_pk_values:
-                    last_pk_fetched = {k:v for k, v in record_message.record.items()
+                    last_pk_fetched = {k: v for k, v in record_message.record.items()
                                        if k in key_properties}
 
                     state = singer.write_bookmark(state,

@@ -30,3 +30,26 @@ tmp
 # Docs
 docs/_build/
 docs/_templates/
+
+# dotenv
+*.env
+
+# virtualenv
+venv/
+ENV/
+
+# coverage
+
+
+# Unit test / coverage reports
+htmlcov/
+tests/codecoverage/*
+.tox/
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
