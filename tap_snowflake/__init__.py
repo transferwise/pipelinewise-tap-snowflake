@@ -104,9 +104,13 @@ def schema_for_column(c):
     return result
 
 
-def create_column_metadata(cols):
+def create_column_metadata(cols, select_all):
     mdata = {}
     mdata = metadata.write(mdata, (), 'selected-by-default', False)
+    if select_all:
+        mdata = metadata.write(mdata, (), 'selected-by-default', True)
+        mdata = metadata.write(mdata, (), 'selected', True)
+
     for c in cols:
         schema = schema_for_column(c)
         mdata = metadata.write(mdata,
@@ -171,10 +175,22 @@ def get_table_columns(snowflake_conn, tables):
     return table_columns
 
 
-def discover_catalog(snowflake_conn, config):
+def config_meta_parser(config):
+    # make sure config table names are upper case
+    return {table.upper(): data for table, data in config.get('metadata', {}).items()}
+
+
+def select_all_fields_in_streams(catalog):
+    for stream in catalog.streams:
+        for meta in stream.metadata:
+            meta['metadata'].update({'selected': True})
+
+
+def discover_catalog(snowflake_conn, config, select_all=False):
     """Returns a Catalog describing the structure of the database."""
     tables = config.get('tables').split(',')
     sql_columns = get_table_columns(snowflake_conn, tables)
+    config_meta = config_meta_parser(config)
 
     table_info = {}
     columns = []
@@ -211,7 +227,7 @@ def discover_catalog(snowflake_conn, config):
         (table_catalog, table_schema, table_name) = k
         schema = Schema(type='object',
                         properties={c.column_name: schema_for_column(c) for c in cols})
-        md = create_column_metadata(cols)
+        md = create_column_metadata(cols, select_all)
         md_map = metadata.to_map(md)
 
         md_map = metadata.write(md_map, (), 'database-name', table_catalog)
@@ -225,9 +241,19 @@ def discover_catalog(snowflake_conn, config):
             # Row Count of views returns NULL - Transform it to not null integer by defaults to 0
             row_count = table_info[table_catalog][table_schema][table_name].get('row_count', 0) or 0
             is_view = table_info[table_catalog][table_schema][table_name]['is_view']
-
             md_map = metadata.write(md_map, (), 'row-count', row_count)
             md_map = metadata.write(md_map, (), 'is-view', is_view)
+            # if select_all is True set replication-method default to FULL_TABLE, will be overriden if
+            # user defined INCREMENTAL in the config metadata
+            if select_all:
+                md_map = metadata.write(md_map, (), 'replication-method', 'FULL_TABLE')
+
+            # check config to see if there was optional metadata defined already
+            full_table_name = f'{catalog}.{table_schema}.{table_name}'.upper()
+            if config_meta and full_table_name in config_meta:
+                table_meta = config_meta.get(full_table_name)
+                for meta_key, meta_value in table_meta.items():
+                    md_map = metadata.write(md_map, (), meta_key, meta_value)
 
             entry = CatalogEntry(
                 table=table_name,
@@ -491,7 +517,10 @@ def main_impl():
         state = args.state or {}
         do_sync(snowflake_conn, args.config, catalog, state)
     else:
-        LOGGER.info('No properties were selected')
+        # do auto sync
+        catalog = discover_catalog(snowflake_conn, args.config, select_all=True)
+        state = args.state or {}
+        do_sync(snowflake_conn, args.config, catalog, state)
 
 
 def main():

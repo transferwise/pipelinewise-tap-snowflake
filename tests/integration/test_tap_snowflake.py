@@ -16,7 +16,7 @@ except ImportError:
 
 LOGGER = singer.get_logger('tap_snowflake_tests')
 
-SCHEMA_NAME = 'tap_snowflake_test'
+SCHEMA_NAME = 'TAP_SNOWFLAKE_TEST'
 
 DB_NAME = os.environ['TAP_SNOWFLAKE_DBNAME']
 
@@ -280,6 +280,78 @@ class TestTypeMapping(unittest.TestCase):
                                       'C_VARBINARY': '76617262696E617279'
                                   })
 
+    def test_discover_catalog_with_strategy_defined(self):
+        """Validate if discovering catalog adds the sync strategy and incrementing col if provided"""
+        config = {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.empty_table_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.empty_table_1': {
+                        'table-key-properties': ['keys'],
+                        'replication-key': 'column1',
+                        'replication-method': 'INCREMENTAL',
+                        'selected': True
+                    }
+                }
+        }
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            config
+        )
+
+        stream = catalog.streams[0]
+        stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
+        self.assertEqual(
+            stream_metadata,
+            {
+                'table-key-properties': ['keys'],
+                'replication-key': 'column1',
+                'replication-method': 'INCREMENTAL',
+                'selected-by-default': False,
+                'database-name': f'{DB_NAME}',
+                'schema-name': f'{SCHEMA_NAME}',
+                'row-count': 0,
+                'is-view': False,
+                'selected': True
+            }
+        )
+
+    def test_discover_catalog_without_strategy_defined(self):
+        """Validate if discovering catalog excludes sync strategy if not configured"""
+        catalog = test_utils.discover_catalog(self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_table_1'})
+
+        # table should be discovered
+        stream = catalog.streams[0]
+        stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
+        self.assertEqual(
+            stream_metadata,
+            {
+                'selected-by-default': False,
+                'database-name': f'{DB_NAME}',
+                'schema-name': f'{SCHEMA_NAME}',
+                'row-count': 0,
+                'is-view': False,
+            }
+        )
+
+    def test_discover_catalog_select_all(self):
+        """Validate if discovering catalog select-all works"""
+        catalog = test_utils.discover_catalog(self.snowflake_conn, {'tables': f'{SCHEMA_NAME}.empty_table_1'}, select_all=True)
+
+        # table should be discovered
+        stream = catalog.streams[0]
+        stream_metadata = stream.to_dict().get('metadata')[0].get('metadata')
+        self.assertEqual(
+            stream_metadata,
+            {
+                'replication-method': 'FULL_TABLE',
+                'selected-by-default': True,
+                'database-name': f'{DB_NAME}',
+                'schema-name': f'{SCHEMA_NAME}',
+                'row-count': 0,
+                'is-view': False,
+                'selected': True
+            }
+        )
 
 class TestSelectsAppropriateColumns(unittest.TestCase):
 
