@@ -73,7 +73,6 @@ class TestTypeMapping(unittest.TestCase):
                       ,HEX_ENCODE('varbinary')
                       ,parse_json($${{'test_key':['test_val']}}$$)
                 ''')
-                            # .format(SCHEMA_NAME))
 
                 cur.execute('''
                 CREATE TABLE {}.empty_table_1 (
