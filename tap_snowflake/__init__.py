@@ -97,6 +97,9 @@ def schema_for_column(c):
         result.type = ['null', 'string']
         result.format = 'binary'
 
+    elif data_type == 'object':
+        result.type = ['null', 'object']
+
     else:
         result = Schema(None,
                         inclusion='unsupported',
