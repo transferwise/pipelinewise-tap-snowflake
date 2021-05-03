@@ -364,6 +364,85 @@ class TestTypeMapping(unittest.TestCase):
             }
         )
 
+    def test_generate_sql_full_sync(self):
+        """Validate the where clause is filtering properly"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {'tables': f'{SCHEMA_NAME}.empty_table_1'},
+            select_all=True
+        )
+
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns)
+        assert select_sql == f'SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1"'
+
+    def test_generate_sql_full_sync_lookback(self):
+        """Validate the where clause is filtering properly, when full table and look back window"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                        'replication-method': 'FULL_TABLE',
+                        'rolling_lookback': {
+                            'time_unit': 'day',
+                            'time_amount': '7',
+                            'time_column': 'c_datetime'
+                        }
+                    }
+                }
+            },
+            select_all=True
+        )
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns)
+        assert select_sql == f'SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1" WHERE "c_datetime" >= DATEADD(day, -7, SYSTIMESTAMP())'
+
+    def test_generate_sql_incremental_sync_without_bookmark(self):
+        """Validate the where clause is filtering properly, when incremental and no bookmark yet"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                        'replication-method': 'INCREMENTAL',
+                        'replication-key': 'REP_KEY'
+                    }
+                }
+            },
+            select_all=True
+        )
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns)
+        assert select_sql == f'SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1" ORDER BY "REP_KEY" ASC'
+
+
+    def test_generate_sql_incremental_sync_with_bookmark(self):
+        """Validate the where clause is filtering properly, when incremental and has bookmark"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                        'replication-method': 'INCREMENTAL',
+                        'replication-key': 'REP_KEY'
+                    }
+                }
+            },
+            select_all=True
+        )
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns, bookmark_value='ABC')
+        assert select_sql == f"""SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1" WHERE "REP_KEY" >= 'ABC' ORDER BY "REP_KEY" ASC"""
+
+
 class TestSelectsAppropriateColumns(unittest.TestCase):
 
     def runTest(self):

@@ -118,6 +118,37 @@ def generate_select_sql(catalog_entry, columns):
     return select_sql
 
 
+def generate_sql_query(catalog_entry, columns, bookmark_value=None):
+    select_sql = generate_select_sql(catalog_entry, columns)
+    filter_sql = generate_filter_sql(catalog_entry, bookmark_value)
+    return ''.join((select_sql, filter_sql))
+
+
+def generate_filter_sql(catalog_entry, bookmark_value):
+    stream_metadata = metadata.to_map(catalog_entry.metadata).get((), {})
+    sync_strategy = stream_metadata.get('replication-method')
+    look_back = stream_metadata.get('rolling_lookback')
+    select_sql = ''
+
+    if sync_strategy == 'FULL_TABLE':
+        if look_back:
+            select_sql += ' WHERE "{}" >= DATEADD({}, -{}, SYSTIMESTAMP())'.format(
+                look_back.get('time_column'),
+                look_back.get('time_unit'),
+                look_back.get('time_amount')
+            )
+    elif sync_strategy == 'INCREMENTAL':
+        if look_back:
+            raise Exception('Lookback rolling window not supported for INCREMENTAL sync')
+        replication_key = stream_metadata.get('replication-key')
+        if replication_key and bookmark_value:
+            select_sql += f' WHERE "{replication_key}" >= \'{bookmark_value}\' ORDER BY "{replication_key}" ASC'
+        elif replication_key:
+            select_sql += f' ORDER BY "{replication_key}" ASC'
+
+    return select_sql
+
+
 # pylint: disable=too-many-branches
 def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
     """Transform SQL row to singer compatible record message"""
