@@ -30,3 +30,5 @@ tmp
 # Docs
 docs/_build/
 docs/_templates/
+
+.venv/
