@@ -38,7 +38,6 @@ def validate_config(config):
         'user',
         'password',
         'warehouse',
-        'tables'
     ]
 
     # Check if mandatory keys exist

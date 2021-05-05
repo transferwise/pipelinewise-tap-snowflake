@@ -7,6 +7,7 @@ import itertools
 import re
 import sys
 import logging
+from typing import List
 
 import singer
 import singer.metrics as metrics
@@ -48,7 +49,6 @@ REQUIRED_CONFIG_KEYS = [
     'user',
     'password',
     'warehouse',
-    'tables'
 ]
 
 # Snowflake data types
@@ -169,9 +169,26 @@ def get_table_columns(snowflake_conn, tables):
     return table_columns
 
 
+def get_all_tables(snowflake_conn, config) -> List[str]:
+    database = config["dbname"]
+
+    sql = [f"SHOW TABLES IN DATABASE {database}"]
+
+    tables = snowflake_conn.query(sql, max_records=SHOW_COMMAND_MAX_ROWS)
+
+    full_tables = [f"{database}.{table['schema_name']}.{table['name']}" for table in tables]
+
+    return full_tables
+
+
 def discover_catalog(snowflake_conn, config):
     """Returns a Catalog describing the structure of the database."""
-    tables = config.get('tables').split(',')
+    tables_string = config.get('tables', "")
+    if tables_string:
+        tables = tables_string.split(',')
+    else:
+        tables = get_all_tables(snowflake_conn, config)
+
     sql_columns = get_table_columns(snowflake_conn, tables)
 
     table_info = {}
@@ -498,3 +515,7 @@ def main():
     except Exception as exc:
         LOGGER.critical(exc)
         raise exc
+
+
+if __name__ == "__main__":
+    main()
