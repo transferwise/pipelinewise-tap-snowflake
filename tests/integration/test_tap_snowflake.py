@@ -1,13 +1,14 @@
+import json
 import os
 import unittest
-import json
+
+import pytest
 import singer
 import snowflake.connector
+from singer.schema import Schema
 
 import tap_snowflake
 import tap_snowflake.sync_strategies.common as common
-
-from singer.schema import Schema
 
 try:
     import tests.utils as test_utils
@@ -52,11 +53,12 @@ class TestTypeMapping(unittest.TestCase):
                 c_datetime DATETIME,
                 c_time TIME,
                 c_binary BINARY,
-                c_varbinary VARBINARY(16)
+                c_varbinary VARBINARY(16),
+                c_object OBJECT
                 )'''.format(SCHEMA_NAME))
 
-                cur.execute('''
-                INSERT INTO {}.test_type_mapping
+                cur.execute(f'''
+                INSERT INTO {SCHEMA_NAME}.test_type_mapping
                 SELECT 1
                       ,12345
                       ,123456789.12
@@ -70,7 +72,8 @@ class TestTypeMapping(unittest.TestCase):
                       ,'17:23:59'
                       ,HEX_ENCODE('binary')
                       ,HEX_ENCODE('varbinary')
-                '''.format(SCHEMA_NAME))
+                      ,parse_json($${{'test_key':['test_val']}}$$)
+                ''')
 
                 cur.execute('''
                 CREATE TABLE {}.empty_table_1 (
@@ -237,6 +240,14 @@ class TestTypeMapping(unittest.TestCase):
                          {'selected-by-default': True,
                           'sql-datatype': 'binary'})
 
+    def test_object(self):
+        self.assertEqual(self.dt_schema.properties['C_OBJECT'],
+                         Schema(['null', 'object'],
+                                inclusion='available'))
+        self.assertEqual(self.get_dt_metadata_for_column('C_OBJECT'),
+                         {'selected-by-default': True,
+                          'sql-datatype': 'object'})
+
     def test_row_to_singer_record(self):
         """Select every supported data type from snowflake,
         generate the singer JSON output message and compare to expected JSON"""
@@ -277,7 +288,8 @@ class TestTypeMapping(unittest.TestCase):
                                       'C_DATETIME': '2019-08-01T17:23:59+00:00',
                                       'C_TIME': '17:23:59',
                                       'C_BINARY': '62696E617279',
-                                      'C_VARBINARY': '76617262696E617279'
+                                      'C_VARBINARY': '76617262696E617279',
+                                      'C_OBJECT': {'test_key': ['test_val']}
                                   })
 
     def test_discover_catalog_with_strategy_defined(self):
@@ -352,6 +364,107 @@ class TestTypeMapping(unittest.TestCase):
                 'selected': True
             }
         )
+
+    def test_generate_sql_full_sync(self):
+        """Validate the where clause is filtering properly"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {'tables': f'{SCHEMA_NAME}.empty_table_1'},
+            select_all=True
+        )
+
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns)
+        assert select_sql == f'SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1"'
+
+    def test_generate_sql_full_sync_lookback(self):
+        """Validate the where clause is filtering properly, when full table and look back window"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                        'replication-method': 'FULL_TABLE',
+                        'rolling_lookback': {
+                            'time_unit': 'day',
+                            'time_amount': '7',
+                            'time_column': 'c_datetime'
+                        }
+                    }
+                }
+            },
+            select_all=True
+        )
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns)
+        assert select_sql == f'SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1" WHERE "c_datetime" >= DATEADD(day, -7, SYSTIMESTAMP())'
+
+    def test_generate_sql_missing_lookback_config(self):
+        """Validate the where clause is filtering properly, when full table and look back window"""
+        with pytest.raises(Exception):
+            catalog = test_utils.discover_catalog(
+                self.snowflake_conn,
+                {
+                    'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                    'metadata': {
+                        f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                            'replication-method': 'FULL_TABLE',
+                            'rolling_lookback': {
+                                'MISSING_REQUIRED_CONFIG'
+                            }
+                        }
+                    }
+                },
+                select_all=True
+            )
+            catalog_entry = catalog.streams[0]
+            columns = list(catalog_entry.schema.properties.keys())
+            common.generate_sql_query(catalog_entry, columns)
+
+    def test_generate_sql_incremental_sync_without_bookmark(self):
+        """Validate the where clause is filtering properly, when incremental and no bookmark yet"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                        'replication-method': 'INCREMENTAL',
+                        'replication-key': 'REP_KEY'
+                    }
+                }
+            },
+            select_all=True
+        )
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns)
+        assert select_sql == f'SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1" ORDER BY "REP_KEY" ASC'
+
+
+    def test_generate_sql_incremental_sync_with_bookmark(self):
+        """Validate the where clause is filtering properly, when incremental and has bookmark"""
+        catalog = test_utils.discover_catalog(
+            self.snowflake_conn,
+            {
+                'tables': f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1',
+                'metadata': {
+                    f'{DB_NAME}.{SCHEMA_NAME}.EMPTY_TABLE_1': {
+                        'replication-method': 'INCREMENTAL',
+                        'replication-key': 'REP_KEY'
+                    }
+                }
+            },
+            select_all=True
+        )
+        catalog_entry = catalog.streams[0]
+        columns = list(catalog_entry.schema.properties.keys())
+        select_sql = common.generate_sql_query(catalog_entry, columns, bookmark_value='ABC')
+        assert select_sql == f"""SELECT "C_PK","C_INT" FROM "{DB_NAME}"."{SCHEMA_NAME}"."EMPTY_TABLE_1" WHERE "REP_KEY" >= 'ABC' ORDER BY "REP_KEY" ASC"""
+
 
 class TestSelectsAppropriateColumns(unittest.TestCase):
 

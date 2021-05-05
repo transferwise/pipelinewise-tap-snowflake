@@ -125,6 +125,25 @@ is invoked.
   }
 ```
 
+Additionally, the full table sync can be configured to use a look back window to limit the size of the data set being synced. The look period is from the current time minus the configured rolling_lookback period. `time_unit` is any date or time part [supported by snowflake](https://docs.snowflake.com/en/sql-reference/functions-date-time.html#label-supported-date-time-parts) and the `time_amount` is the positive integer of time units to look backwards. 
+```
+  "metadata": {
+    "replication-method": "FULL_TABLE",
+    "selected-by-default": false,
+    "database-name": "DB_123",
+    "schema-name": "SCHEMA_456",
+    "row-count": 0,
+    "is-view": false,
+    "selected": true,
+    "rolling_lookback": {
+      "time_unit": "day",
+      "time_amount": "7",
+      "time_column": "DATE_OR_TS_COL_NAME"
+    }
+  }
+
+```
+
 ### Incremental
 
 Incremental replication works in conjunction with a state file to only extract

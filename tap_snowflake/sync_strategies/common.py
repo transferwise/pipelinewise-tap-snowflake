@@ -3,12 +3,20 @@
 
 import copy
 import datetime
-import singer
+import json
 import time
 
+import singer
 import singer.metrics as metrics
 from singer import metadata
 from singer import utils
+
+
+REQUIRED_LOOKBACK_METADATA = [
+    'time_unit',
+    'time_amount',
+    'time_column'
+]
 
 LOGGER = singer.get_logger('tap_snowflake')
 
@@ -117,6 +125,44 @@ def generate_select_sql(catalog_entry, columns):
     return select_sql
 
 
+def generate_sql_query(catalog_entry, columns, bookmark_value=None):
+    select_sql = generate_select_sql(catalog_entry, columns)
+    filter_sql = generate_filter_sql(catalog_entry, bookmark_value)
+    return ''.join((select_sql, filter_sql))
+
+
+def validate_lookback_options(look_back):
+    missing_keys = [key for key in REQUIRED_LOOKBACK_METADATA if key not in look_back]
+    if missing_keys:
+        raise Exception(f'Lookback metadata invalid - missing keys {missing_keys}')
+
+
+def generate_filter_sql(catalog_entry, bookmark_value):
+    stream_metadata = metadata.to_map(catalog_entry.metadata).get((), {})
+    sync_strategy = stream_metadata.get('replication-method')
+    look_back = stream_metadata.get('rolling_lookback')
+    filter_sql = ''
+
+    if sync_strategy == 'FULL_TABLE':
+        if look_back:
+            validate_lookback_options(look_back)
+            filter_sql += ' WHERE "{}" >= DATEADD({}, -{}, SYSTIMESTAMP())'.format(
+                look_back.get('time_column'),
+                look_back.get('time_unit'),
+                look_back.get('time_amount')
+            )
+    elif sync_strategy == 'INCREMENTAL':
+        if look_back:
+            raise Exception('Lookback rolling window not supported for INCREMENTAL sync')
+        replication_key = stream_metadata.get('replication-key')
+        if replication_key and bookmark_value:
+            filter_sql += f' WHERE "{replication_key}" >= \'{bookmark_value}\' ORDER BY "{replication_key}" ASC'
+        elif replication_key:
+            filter_sql += f' ORDER BY "{replication_key}" ASC'
+
+    return filter_sql
+
+
 # pylint: disable=too-many-branches
 def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
     """Transform SQL row to singer compatible record message"""
@@ -153,6 +199,11 @@ def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
             else:
                 boolean_representation = True
             row_to_persist += (boolean_representation,)
+        elif 'object' in property_type or property_type == 'object':
+            obj_rep = None
+            if elem:
+                obj_rep = json.loads(elem)
+            row_to_persist += (obj_rep,)
 
         else:
             row_to_persist += (elem,)
