@@ -49,27 +49,13 @@ def sync_table(snowflake_conn, catalog_entry, state, columns):
 
     singer.write_message(activate_version_message)
 
-    select_sql = common.generate_select_sql(catalog_entry, columns)
-    params = {}
-
     with snowflake_conn.connect_with_backoff() as open_conn:
         with open_conn.cursor() as cur:
-            select_sql = common.generate_select_sql(catalog_entry, columns)
-            params = {}
-
             if replication_key_value is not None:
                 if catalog_entry.schema.properties[replication_key_metadata].format == 'date-time':
                     replication_key_value = pendulum.parse(replication_key_value)
-
-                # pylint: disable=duplicate-string-formatting-argument
-                select_sql += ' WHERE "{}" >= \'{}\' ORDER BY "{}" ASC'.format(
-                    replication_key_metadata,
-                    replication_key_value,
-                    replication_key_metadata)
-
-            elif replication_key_metadata is not None:
-                select_sql += ' ORDER BY "{}" ASC'.format(replication_key_metadata)
-
+            select_sql = common.generate_sql_query(catalog_entry, columns, bookmark_value=replication_key_value)
+            params = {}
             common.sync_query(cur,
                               catalog_entry,
                               state,
