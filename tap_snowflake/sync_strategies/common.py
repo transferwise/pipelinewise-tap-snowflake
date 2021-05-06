@@ -109,7 +109,7 @@ def generate_select_sql(catalog_entry, columns):
         else:
             escaped_columns.append(escaped_col)
 
-    select_columns = [f"CAST({col}, STRING) as {col}" for col in escaped_columns]
+    select_columns = [f"CAST({col} AS STRING) as {col}" for col in escaped_columns]
     select_sql = f'SELECT {",".join(select_columns)} FROM {escaped_db}.{escaped_schema}.{escaped_table}'
 
     # escape percent signs
