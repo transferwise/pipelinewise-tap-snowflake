@@ -181,7 +181,7 @@ def get_all_tables(snowflake_conn, config) -> List[str]:
     return full_tables
 
 
-def discover_catalog(snowflake_conn, config):
+def discover_catalog(snowflake_conn, config, default_selected=False):
     """Returns a Catalog describing the structure of the database."""
     tables_string = config.get('tables', "")
     if tables_string:
@@ -225,7 +225,9 @@ def discover_catalog(snowflake_conn, config):
         cols = list(cols)
         (table_catalog, table_schema, table_name) = k
         schema = Schema(type='object',
-                        properties={c.column_name: schema_for_column(c) for c in cols})
+                        properties={c.column_name: schema_for_column(c) for c in cols},
+                        selected=default_selected
+        )
         md = create_column_metadata(cols)
         md_map = metadata.to_map(md)
 
@@ -257,7 +259,7 @@ def discover_catalog(snowflake_conn, config):
 
 
 def do_discover(snowflake_conn, config):
-    discover_catalog(snowflake_conn, config).dump()
+    discover_catalog(snowflake_conn, config, default_selected=True).dump()
 
 
 # pylint: disable=fixme
@@ -464,7 +466,7 @@ def sync_streams(snowflake_conn, catalog, state):
 
         md_map = metadata.to_map(catalog_entry.metadata)
 
-        replication_method = md_map.get((), {}).get('replication-method')
+        replication_method = md_map.get((), {}).get('replication-method', "FULL_TABLE")
 
         database_name = common.get_database_name(catalog_entry)
         schema_name = common.get_schema_name(catalog_entry)

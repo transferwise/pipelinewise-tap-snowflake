@@ -40,7 +40,7 @@ def stream_is_selected(stream):
     md_map = metadata.to_map(stream.metadata)
     selected_md = metadata.get(md_map, (), 'selected')
 
-    return selected_md
+    return stream and stream.schema and stream.schema.selected
 
 
 def property_is_selected(stream, property_name):
@@ -109,7 +109,8 @@ def generate_select_sql(catalog_entry, columns):
         else:
             escaped_columns.append(escaped_col)
 
-    select_sql = f'SELECT {",".join(escaped_columns)} FROM {escaped_db}.{escaped_schema}.{escaped_table}'
+    select_columns = [f"CAST({col}, STRING) as {col}" for col in escaped_columns]
+    select_sql = f'SELECT {",".join(select_columns)} FROM {escaped_db}.{escaped_schema}.{escaped_table}'
 
     # escape percent signs
     select_sql = select_sql.replace('%', '%%')
