@@ -13,7 +13,9 @@ def get_db_config():
         'account': os.environ.get('TAP_SNOWFLAKE_ACCOUNT'),
         'dbname': os.environ.get('TAP_SNOWFLAKE_DBNAME'),
         'user': os.environ.get('TAP_SNOWFLAKE_USER'),
-        'password': os.environ.get('TAP_SNOWFLAKE_PASSWORD'),
+        'password': os.environ.get('TAP_SNOWFLAKE_PASSWORD', None),
+        'private_key_path': os.environ.get('TAP_SNOWFLAKE_PRIVATE_KEY_PATH', None),
+        'private_key_passphrase': os.environ.get('TAP_SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', None),
         'warehouse': os.environ.get('TAP_SNOWFLAKE_WAREHOUSE'),
         'tables': 'FAKE_TABLES'
     }

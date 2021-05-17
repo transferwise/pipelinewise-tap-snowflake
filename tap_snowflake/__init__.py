@@ -46,7 +46,6 @@ REQUIRED_CONFIG_KEYS = [
     'account',
     'dbname',
     'user',
-    'password',
     'warehouse',
     'tables'
 ]
