@@ -199,11 +199,18 @@ def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
             else:
                 boolean_representation = True
             row_to_persist += (boolean_representation,)
+
         elif 'object' in property_type or property_type == 'object':
             obj_rep = None
             if elem:
                 obj_rep = json.loads(elem)
             row_to_persist += (obj_rep,)
+
+        elif 'array' in property_type or property_type == 'array':
+            array_rep = None
+            if elem:
+                array_rep = json.loads(elem)
+            row_to_persist += (array_rep,)
 
         else:
             row_to_persist += (elem,)

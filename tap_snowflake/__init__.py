@@ -100,6 +100,9 @@ def schema_for_column(c):
     elif data_type == 'object':
         result.type = ['null', 'object']
 
+    elif data_type == 'array':
+        result.type = ['null', 'array']
+
     else:
         result = Schema(None,
                         inclusion='unsupported',
