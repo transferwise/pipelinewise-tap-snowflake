@@ -206,14 +206,9 @@ def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
                 obj_rep = json.loads(elem)
             row_to_persist += (obj_rep,)
 
-        elif 'array' in property_type or property_type == 'array':
-            array_rep = None
-            if elem:
-                array_rep = json.loads(elem)
-            row_to_persist += (array_rep,)
-
         else:
             row_to_persist += (elem,)
+
     rec = dict(zip(columns, row_to_persist))
 
     return singer.RecordMessage(

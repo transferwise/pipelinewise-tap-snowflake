@@ -59,7 +59,8 @@ NUMBER_TYPES = set(['number', 'decimal', 'numeric'])
 INTEGER_TYPES = set(['int', 'integer', 'bigint', 'smallint'])
 FLOAT_TYPES = set(['float', 'float4', 'float8', 'real', 'double', 'double precision'])
 DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
-BINARY_TYPE = set(['binary', 'varbinary'])
+BINARY_TYPES = set(['binary', 'varbinary'])
+OBJECT_TYPES = set(['object', 'array'])
 
 
 def schema_for_column(c):
@@ -93,15 +94,12 @@ def schema_for_column(c):
         result.type = ['null', 'string']
         result.format = 'time'
 
-    elif data_type in BINARY_TYPE:
+    elif data_type in BINARY_TYPES:
         result.type = ['null', 'string']
         result.format = 'binary'
 
-    elif data_type == 'object':
-        result.type = ['null', 'object']
-
-    elif data_type == 'array':
-        result.type = ['null', 'array']
+    elif data_type in OBJECT_TYPES:
+        result.type = ['null', 'object', 'array']
 
     else:
         result = Schema(None,
