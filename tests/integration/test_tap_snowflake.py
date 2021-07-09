@@ -54,7 +54,8 @@ class TestTypeMapping(unittest.TestCase):
                 c_time TIME,
                 c_binary BINARY,
                 c_varbinary VARBINARY(16),
-                c_object OBJECT
+                c_object OBJECT,
+                c_array ARRAY
                 )'''.format(SCHEMA_NAME))
 
                 cur.execute(f'''
@@ -73,6 +74,7 @@ class TestTypeMapping(unittest.TestCase):
                       ,HEX_ENCODE('binary')
                       ,HEX_ENCODE('varbinary')
                       ,parse_json($${{'test_key':['test_val']}}$$)
+                      ,array_construct(1, object_construct('foo', 'bar'), array_construct(3,3,3))
                 ''')
 
                 cur.execute('''
@@ -242,11 +244,19 @@ class TestTypeMapping(unittest.TestCase):
 
     def test_object(self):
         self.assertEqual(self.dt_schema.properties['C_OBJECT'],
-                         Schema(['null', 'object'],
+                         Schema(['null', 'object', 'array'],
                                 inclusion='available'))
         self.assertEqual(self.get_dt_metadata_for_column('C_OBJECT'),
                          {'selected-by-default': True,
                           'sql-datatype': 'object'})
+
+    def test_array(self):
+        self.assertEqual(self.dt_schema.properties['C_ARRAY'],
+                         Schema(['null', 'object', 'array'],
+                                inclusion='available'))
+        self.assertEqual(self.get_dt_metadata_for_column('C_ARRAY'),
+                         {'selected-by-default': True,
+                          'sql-datatype': 'array'})
 
     def test_row_to_singer_record(self):
         """Select every supported data type from snowflake,
@@ -289,7 +299,8 @@ class TestTypeMapping(unittest.TestCase):
                                       'C_TIME': '17:23:59',
                                       'C_BINARY': '62696E617279',
                                       'C_VARBINARY': '76617262696E617279',
-                                      'C_OBJECT': {'test_key': ['test_val']}
+                                      'C_OBJECT': {'test_key': ['test_val']},
+                                      'C_ARRAY': [1, {"foo": "bar"}, [3, 3, 3]]
                                   })
 
     def test_discover_catalog_with_strategy_defined(self):

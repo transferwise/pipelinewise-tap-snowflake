@@ -17,6 +17,7 @@ dist/
 properties.json
 config.json
 state.json
+catalog.json
 
 *.db
 .DS_Store
