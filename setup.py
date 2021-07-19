@@ -21,7 +21,7 @@ setup(name='pipelinewise-tap-snowflake',
             'pipelinewise-singer-python==1.*',
             'snowflake-connector-python[pandas]==2.3.7',
             'pendulum==1.2.0',
-            'python-dateutil>=2.1,<2.8.2'
+            'python-dateutil>=2.1,<2.8.3'
       ],
       extras_require={
           'test': [
