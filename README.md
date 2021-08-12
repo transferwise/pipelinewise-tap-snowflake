@@ -23,17 +23,7 @@ installation instructions for [Mac](http://docs.python-guide.org/en/latest/start
 It's recommended to use a virtualenv:
 
 ```bash
-  python3 -m venv venv
-  pip install pipelinewise-tap-snowflake
-```
-
-or
-
-```bash
-  python3 -m venv venv
-  . venv/bin/activate
-  pip install --upgrade pip
-  pip install .
+make venv
 ```
 
 ### Configuration
@@ -106,18 +96,29 @@ specified in the table's metadata as well.
   export TAP_SNOWFLAKE_WAREHOUSE=<snowflake-warehouse>
 ```
 
-2. Install python dependencies in a virtual env and run nose unit and integration tests
-```
-  python3 -m venv venv
-  . venv/bin/activate
-  pip install --upgrade pip
-  pip install .
-  pip install nose
+2. Install python dependencies
+```bash
+make venv
 ```
 
 3. To run unit tests:
+
+**PS**: There are no unit tests at the time of writing this document
+
+```bash
+make unit_test
 ```
-  nosetests
+
+4. To run Integration tests
+```bash
+make integration_test
+```
+
+
+### To run formatting and linting:
+
+```bash
+make venv format pylint
 ```
 
 ## License
