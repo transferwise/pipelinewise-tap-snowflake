@@ -23,7 +23,7 @@ setup(name='pipelinewise-tap-snowflake',
           'pendulum==1.2.0',
           'setuptools>=40.8.0',
           'wheel>=0.37.0',
-          'cryptography<4.0.0,>=2.5.0'
+          'cryptography==3.4.8'
       ],
       extras_require={
           'test': [
