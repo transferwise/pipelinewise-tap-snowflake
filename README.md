@@ -57,6 +57,19 @@ rows. Please be as specific as possible.
   tap-snowflake --config config.json --properties properties.json --state state.json
 ```
 
+### Authentication Methods
+
+You can either use basic user/password authentication or Key Pair authentication.
+
+#### User / Password authentication
+
+Populate `user` and `password` in the `config.json` file
+
+#### Key Pair authentication
+
+To use key pair authentication, omit the `password` and instead provide the `private_key_path` to the unencrypted version of the private key and, optionally, the `private_key_passphrase`.
+
+
 ### Discovery mode
 
 The tap can be invoked in discovery mode to find the available tables and
