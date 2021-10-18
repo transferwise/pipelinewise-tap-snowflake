@@ -70,6 +70,7 @@ class SnowflakeConnection:
             user=self.connection_config['user'],
             password=self.connection_config['password'],
             account=self.connection_config['account'],
+            role=self.connection_config.get('role'),  # optional parameter
             database=self.connection_config['dbname'],
             warehouse=self.connection_config['warehouse'],
             insecure_mode=self.connection_config.get('insecure_mode', False)
