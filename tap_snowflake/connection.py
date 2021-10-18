@@ -96,8 +96,6 @@ class SnowflakeConnection:
                     encryption_algorithm=serialization.NoEncryption())
             return pkb
 
-        return None
-
     def open_connection(self):
         """Connect to snowflake database"""
         return snowflake.connector.connect(
