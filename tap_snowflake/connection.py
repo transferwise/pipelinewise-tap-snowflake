@@ -52,7 +52,8 @@ def validate_config(config):
       'private_key_path'
     ]
     if not any(config.get(k, None) for k in possible_authentication_keys):
-        errors.append(f'Required authentication key missing. Existing methods: {",".join(possible_authentication_keys)}')
+        errors.append(
+            f'Required authentication key missing. Existing methods: {",".join(possible_authentication_keys)}')
 
     return errors
 
@@ -73,13 +74,16 @@ class SnowflakeConnection:
             sys.exit(1)
 
     def get_private_key(self):
+        """
+        Get private key from the right location
+        """
         if 'private_key_path' in self.connection_config:
             try:
                 encoded_passphrase = self.connection_config['private_key_passphrase'].encode()
             except KeyError:
                 encoded_passphrase = None
 
-            with open(self.connection_config['private_key_path'], "rb") as key:
+            with open(self.connection_config['private_key_path'], 'rb') as key:
                 p_key= serialization.load_pem_private_key(
                         key.read(),
                         password=encoded_passphrase,
@@ -91,8 +95,8 @@ class SnowflakeConnection:
                     format=serialization.PrivateFormat.PKCS8,
                     encryption_algorithm=serialization.NoEncryption())
             return pkb
-        else:
-            return None
+
+        return None
 
     def open_connection(self):
         """Connect to snowflake database"""
