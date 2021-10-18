@@ -77,7 +77,7 @@ class SnowflakeConnection:
         """
         Get private key from the right location
         """
-        if 'private_key_path' in self.connection_config:
+        if self.connection_config.get('private_key_path'):
             try:
                 encoded_passphrase = self.connection_config['private_key_passphrase'].encode()
             except KeyError:
