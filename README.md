@@ -30,7 +30,7 @@ make venv
 
 1. Create a `config.json` file with connection details to snowflake, here is a [sample config file](./config_sample.json).
 
-**Note**: `tables` is a mandatory parameter as well to avoid long-running catalog discovery process.
+**Note**: `tables` is a mandatory parameter as well to avoid a long-running catalog discovery process.
 Please specify fully qualified table and view names and only that ones that you need to extract otherwise you can
 end up with very long running discovery mode of this tap. Discovery mode is analysing table structures but
 Snowflake doesn't like selecting lot of rows from `INFORMATION_SCHEMA` or running `SHOW` commands that returns lot of
