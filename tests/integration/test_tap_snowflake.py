@@ -32,6 +32,8 @@ class TestTypeMapping(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+
+        cls.config = test_utils.get_db_config()
         cls.snowflake_conn = test_utils.get_test_connection()
 
         with cls.snowflake_conn.open_connection() as open_conn:
@@ -110,9 +112,9 @@ class TestTypeMapping(unittest.TestCase):
         # Three tables should be discovered
         tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
         self.assertCountEqual(tap_stream_ids,
-                              ['ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_1',
-                               'ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2',
-                               'ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-TEST_TYPE_MAPPING'])
+                              [f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_1',
+                               f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2',
+                               f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-TEST_TYPE_MAPPING'])
 
     def test_discover_catalog_with_single_table(self):
         """Validate if discovering catalog with filter_tables option working as expected"""
@@ -123,7 +125,7 @@ class TestTypeMapping(unittest.TestCase):
         # Only one table should be discovered
         tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
         self.assertCountEqual(tap_stream_ids,
-                              ['ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2'])
+                              [f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2'])
 
     def test_discover_catalog_with_not_existing_table(self):
         """Validate if discovering catalog raises as exception when table not exist"""
@@ -141,7 +143,7 @@ class TestTypeMapping(unittest.TestCase):
         # Only one view should be discovered
         tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
         self.assertCountEqual(tap_stream_ids,
-                              ['ANALYTICS_DB_TEST-TAP_SNOWFLAKE_TEST-EMPTY_VIEW_1'])
+                              [f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_VIEW_1'])
 
     def test_decimal(self):
         self.assertEqual(self.dt_schema.properties['C_DECIMAL'],
