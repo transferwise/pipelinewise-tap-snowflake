@@ -286,7 +286,7 @@ def desired_columns(selected, table_schema):
             'Columns %s are primary keys but were not selected. Adding them.',
             not_selected_but_automatic)
 
-    return selected.intersection(available).union(automatic)
+    return sorted(selected.intersection(available).union(automatic), key = list(table_schema.properties.keys()).index)
 
 
 def resolve_catalog(discovered_catalog, streams_to_sync):
