@@ -272,7 +272,7 @@ def desired_columns(selected, table_schema):
         elif inclusion == 'available':
             available.add(column)
         elif inclusion == 'unsupported':
-            available.add(column)
+            unsupported.add(column)
         else:
             raise Exception('Unknown inclusion ' + inclusion)
 
