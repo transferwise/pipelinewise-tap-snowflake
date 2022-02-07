@@ -58,6 +58,7 @@ INTEGER_TYPES = set(['int', 'integer', 'bigint', 'smallint'])
 FLOAT_TYPES = set(['float', 'float4', 'float8', 'real', 'double', 'double precision'])
 DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
 BINARY_TYPE = set(['binary', 'varbinary'])
+IDENTIFIED_UNSUPPORT_TYPES = set(['variant', 'object', 'array', 'geography'])
 
 
 def schema_for_column(c):
@@ -94,6 +95,12 @@ def schema_for_column(c):
     elif data_type in BINARY_TYPE:
         result.type = ['null', 'string']
         result.format = 'binary'
+    #todo
+    elif data_type in IDENTIFIED_UNSUPPORT_TYPES:
+        result = Schema(None,
+                        inclusion='unsupported',
+                        description='Unsupported data type {}'.format(data_type))
+        result.type = ['null', 'string'] 
 
     else:
         result = Schema(None,
@@ -111,6 +118,7 @@ def create_column_metadata(cols):
                                ('properties', c.column_name),
                                'selected-by-default',
                                schema.inclusion != 'unsupported')
+                            #    todo
         mdata = metadata.write(mdata,
                                ('properties', c.column_name),
                                'sql-datatype',
@@ -264,7 +272,7 @@ def desired_columns(selected, table_schema):
         elif inclusion == 'available':
             available.add(column)
         elif inclusion == 'unsupported':
-            unsupported.add(column)
+            available.add(column)
         else:
             raise Exception('Unknown inclusion ' + inclusion)
 
