@@ -97,7 +97,6 @@ def schema_for_column(c):
         result.format = 'binary'
         
     elif data_type in IDENTIFIED_UNSUPPORT_TYPES:
-        result = Schema(inclusion='unsupported')
         result.type = ['null', 'string'] 
 
     else:
