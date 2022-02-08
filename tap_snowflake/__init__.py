@@ -58,8 +58,8 @@ INTEGER_TYPES = set(['int', 'integer', 'bigint', 'smallint'])
 FLOAT_TYPES = set(['float', 'float4', 'float8', 'real', 'double', 'double precision'])
 DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
 BINARY_TYPE = set(['binary', 'varbinary'])
-IDENTIFIED_UNSUPPORT_TYPES = set(['variant', 'object', 'array', 'geography'])
-
+SEMI_STRUCTURED_TYPES = set(['variant', 'object', 'array'])
+GEOGRAPHY_TYPE =set(['geography'])
 
 def schema_for_column(c):
     '''Returns the Schema object for the given Column.'''
@@ -96,8 +96,13 @@ def schema_for_column(c):
         result.type = ['null', 'string']
         result.format = 'binary'
         
-    elif data_type in IDENTIFIED_UNSUPPORT_TYPES:
+    elif data_type in SEMI_STRUCTURED_TYPES:
         result.type = ['null', 'string'] 
+        result.format = 'semi_structured'
+
+    elif data_type in GEOGRAPHY_TYPE:
+        result.type = ['null', 'string'] 
+        result.format = 'geography'
 
     else:
         result = Schema(None,
