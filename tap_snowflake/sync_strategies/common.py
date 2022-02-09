@@ -99,13 +99,17 @@ def generate_select_sql(catalog_entry, columns):
 
     for col_name in columns:
         escaped_col = escape(col_name)
-
+        
         # fetch the column type format from the json schema alreay built
         property_format = catalog_entry.schema.properties[col_name].format
 
         # if the column format is binary, fetch the hexified value
         if property_format == 'binary':
             escaped_columns.append(f'hex_encode({escaped_col}) as {escaped_col}')
+        elif property_format == 'semi_structured':
+            escaped_columns.append(f'TO_VARCHAR({escaped_col}) as {escaped_col}')
+        elif property_format == 'geography':
+            escaped_columns.append(f'ST_ASTEXT({escaped_col}) as {escaped_col}')
         else:
             escaped_columns.append(escaped_col)
 

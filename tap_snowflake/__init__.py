@@ -58,7 +58,8 @@ INTEGER_TYPES = set(['int', 'integer', 'bigint', 'smallint'])
 FLOAT_TYPES = set(['float', 'float4', 'float8', 'real', 'double', 'double precision'])
 DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
 BINARY_TYPE = set(['binary', 'varbinary'])
-
+SEMI_STRUCTURED_TYPES = set(['variant', 'object', 'array'])
+GEOGRAPHY_TYPE =set(['geography'])
 
 def schema_for_column(c):
     '''Returns the Schema object for the given Column.'''
@@ -94,6 +95,14 @@ def schema_for_column(c):
     elif data_type in BINARY_TYPE:
         result.type = ['null', 'string']
         result.format = 'binary'
+        
+    elif data_type in SEMI_STRUCTURED_TYPES:
+        result.type = ['null', 'string'] 
+        result.format = 'semi_structured'
+
+    elif data_type in GEOGRAPHY_TYPE:
+        result.type = ['null', 'string'] 
+        result.format = 'geography'
 
     else:
         result = Schema(None,
@@ -285,7 +294,7 @@ def desired_columns(selected, table_schema):
         LOGGER.warning(
             'Columns %s are primary keys but were not selected. Adding them.',
             not_selected_but_automatic)
-
+            
     return sorted(selected.intersection(available).union(automatic), key = list(table_schema.properties.keys()).index)
 
 
