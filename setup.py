@@ -6,7 +6,7 @@ with open('README.md') as f:
     long_description = f.read()
 
 setup(name='pipelinewise-tap-snowflake',
-      version='2.0.5',
+      version='2.0.7',
       description='Singer.io tap for extracting data from Snowflake - PipelineWise compatible',
       long_description=long_description,
       long_description_content_type='text/markdown',
