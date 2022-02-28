@@ -18,4 +18,4 @@ unit_test:
 
 integration_test:
 	. ./venv/bin/activate ;\
-	pytest tests/integration/ -vv --cov tap_snowflake
+	pytest tests/integration/ -vvx --cov tap_snowflake

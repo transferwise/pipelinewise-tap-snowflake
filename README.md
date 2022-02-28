@@ -28,20 +28,9 @@ make venv
 
 ### Configuration
 
-1. Create a `config.json` file with connection details to snowflake.
+1. Create a `config.json` file with connection details to snowflake, here is a [sample config file](./config_sample.json).
 
-   ```json
-   {
-     "account": "rtxxxxx.eu-central-1",
-     "dbname": "database_name",
-     "user": "my_user",
-     "password": "password",
-     "warehouse": "my_virtual_warehouse",
-     "tables": "db.schema.table1,db.schema.table2"
-   }
-   ```
-
-**Note**: `tables` is a mandatory parameter as well to avoid long running catalog discovery process.
+**Note**: `tables` is a mandatory parameter as well to avoid a long-running catalog discovery process.
 Please specify fully qualified table and view names and only that ones that you need to extract otherwise you can
 end up with very long running discovery mode of this tap. Discovery mode is analysing table structures but
 Snowflake doesn't like selecting lot of rows from `INFORMATION_SCHEMA` or running `SHOW` commands that returns lot of
@@ -105,7 +94,9 @@ specified in the table's metadata as well.
   export TAP_SNOWFLAKE_ACCOUNT=<snowflake-account-name>
   export TAP_SNOWFLAKE_DBNAME=<snowflake-database-name>
   export TAP_SNOWFLAKE_USER=<snowflake-user>
-  export TAP_SNOWFLAKE_PASSWORD=<snowfale-password>
+  export TAP_SNOWFLAKE_PASSWORD=<snowflake-password>
+  export TAP_SNOWFLAKE_PRIVATE_KEY_PATH=<snowflake-pk-path>
+  export TAP_SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=<snowflake-passphrase>
   export TAP_SNOWFLAKE_WAREHOUSE=<snowflake-warehouse>
 ```
 
