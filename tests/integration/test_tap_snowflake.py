@@ -111,10 +111,14 @@ class TestTypeMapping(unittest.TestCase):
 
         # Three tables should be discovered
         tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
-        self.assertCountEqual(tap_stream_ids,
-                              [f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_1',
-                               f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2',
-                               f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-TEST_TYPE_MAPPING'])
+
+        expected_tap_stream_ids = [
+            f'{self.config["dbname"]}-{SCHEMA_NAME}-EMPTY_TABLE_1',
+            f'{self.config["dbname"]}-{SCHEMA_NAME}-EMPTY_TABLE_2',
+            f'{self.config["dbname"]}-{SCHEMA_NAME}-TEST_TYPE_MAPPING'
+        ]
+
+        self.assertCountEqual(tap_stream_ids, expected_tap_stream_ids)
 
     def test_discover_catalog_with_single_table(self):
         """Validate if discovering catalog with filter_tables option working as expected"""
@@ -124,8 +128,8 @@ class TestTypeMapping(unittest.TestCase):
 
         # Only one table should be discovered
         tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
-        self.assertCountEqual(tap_stream_ids,
-                              [f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_TABLE_2'])
+        expected_tap_stream_ids = [f'{self.config["dbname"]}-{SCHEMA_NAME}-EMPTY_TABLE_2']
+        self.assertCountEqual(tap_stream_ids, expected_tap_stream_ids)
 
     def test_discover_catalog_with_not_existing_table(self):
         """Validate if discovering catalog raises as exception when table not exist"""
@@ -142,8 +146,8 @@ class TestTypeMapping(unittest.TestCase):
 
         # Only one view should be discovered
         tap_stream_ids = [s.tap_stream_id for s in catalog.streams]
-        self.assertCountEqual(tap_stream_ids,
-                              [f'{self.config["dbname"]}-TAP_SNOWFLAKE_TEST-EMPTY_VIEW_1'])
+        expected_tap_stream_ids = [f'{self.config["dbname"]}-{SCHEMA_NAME}-EMPTY_VIEW_1']
+        self.assertCountEqual(tap_stream_ids, expected_tap_stream_ids)
 
     def test_decimal(self):
         self.assertEqual(self.dt_schema.properties['C_DECIMAL'],
