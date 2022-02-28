@@ -16,7 +16,7 @@ except ImportError:
 
 LOGGER = singer.get_logger('tap_snowflake_tests')
 
-SCHEMA_NAME = 'tap_snowflake_test'
+SCHEMA_NAME = test_utils.SCHEMA_NAME
 
 SINGER_MESSAGES = []
 
