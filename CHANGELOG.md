@@ -1,3 +1,10 @@
+3.0.0 (2022-03-04)
+------------------
+
+- Added private key authentication
+- Bumped `snowflake-connector-python[pandas]` from `2.4` to `2.7`
+- Dropped python3.6 support
+
 2.0.3 (2021-01-11)
 -------------------
 
