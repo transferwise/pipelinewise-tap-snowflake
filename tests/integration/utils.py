@@ -1,11 +1,12 @@
 import os
+from sys import version_info as py_version
 
 import singer
 
 import tap_snowflake
 from tap_snowflake.connection import SnowflakeConnection
 
-SCHEMA_NAME='tap_snowflake_test'
+SCHEMA_NAME = f'TAP_SNOWFLAKE_TEST_PY{py_version.major}_{py_version.minor}'
 
 
 def get_db_config():
