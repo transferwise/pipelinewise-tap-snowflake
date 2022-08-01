@@ -158,6 +158,7 @@ def get_table_columns(snowflake_conn, tables):
                   ,PARSE_JSON(show_columns."data_type"):precision::number   AS numeric_precision
                   ,PARSE_JSON(show_columns."data_type"):scale::number       AS numeric_scale
               FROM show_columns
+                ORDER BY table_name ASC, column_name ASC
         """
         queries.extend([show_columns, select])
 
