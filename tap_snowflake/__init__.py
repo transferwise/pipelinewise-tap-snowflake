@@ -20,6 +20,7 @@ from singer.schema import Schema
 import tap_snowflake.sync_strategies.common as common
 import tap_snowflake.sync_strategies.full_table as full_table
 import tap_snowflake.sync_strategies.incremental as incremental
+import tap_snowflake.sync_strategies.n_rows as n_rows
 from tap_snowflake.connection import SnowflakeConnection
 
 LOGGER = singer.get_logger('tap_snowflake')
@@ -436,6 +437,18 @@ def do_sync_full_table(snowflake_conn, catalog_entry, state, columns):
     singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 
 
+def do_sync_n_rows(snowflake_conn, catalog_entry, state, columns):
+    LOGGER.info('Stream %s is using n-rows replication', catalog_entry.stream)
+
+    write_schema_message(catalog_entry)
+
+    stream_version = common.get_stream_version(catalog_entry.tap_stream_id, state)
+
+    n_rows.sync_table(snowflake_conn, catalog_entry, state, columns, stream_version)
+
+    singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
+
+
 def sync_streams(snowflake_conn, catalog, state):
     for catalog_entry in catalog.streams:
         columns = list(catalog_entry.schema.properties.keys())
@@ -466,6 +479,8 @@ def sync_streams(snowflake_conn, catalog, state):
                 do_sync_incremental(snowflake_conn, catalog_entry, state, columns)
             elif replication_method == 'FULL_TABLE':
                 do_sync_full_table(snowflake_conn, catalog_entry, state, columns)
+            elif replication_method == 'N_ROWS':
+                do_sync_n_rows(snowflake_conn, catalog_entry, state, columns)
             else:
                 raise Exception('Only INCREMENTAL and FULL TABLE replication methods are supported')
 
