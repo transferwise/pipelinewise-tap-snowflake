@@ -52,7 +52,9 @@ class TestTypeMapping(unittest.TestCase):
                 c_datetime DATETIME,
                 c_time TIME,
                 c_binary BINARY,
-                c_varbinary VARBINARY(16)
+                c_varbinary VARBINARY(16),
+                c_object OBJECT,
+                c_array ARRAY
                 )'''.format(SCHEMA_NAME))
 
                 cur.execute('''
@@ -70,6 +72,8 @@ class TestTypeMapping(unittest.TestCase):
                       ,'17:23:59'
                       ,HEX_ENCODE('binary')
                       ,HEX_ENCODE('varbinary')
+                      ,parse_json($${{'test_key':['test_val']}}$$)
+                      ,array_construct(1, object_construct('foo', 'bar'), array_construct(3,3,3))
                 '''.format(SCHEMA_NAME))
 
                 cur.execute('''
@@ -241,6 +245,28 @@ class TestTypeMapping(unittest.TestCase):
                          {'selected-by-default': True,
                           'sql-datatype': 'binary'})
 
+    def test_object(self):
+        self.assertEqual(
+            self.dt_schema.properties['C_OBJECT'],
+            Schema(['null', 'object', 'array'], inclusion='available'),
+        )
+        self.assertEqual(
+            self.get_dt_metadata_for_column('C_OBJECT'),
+                        {'selected-by-default': True,
+                         'sql-datatype': 'object'},
+        )
+
+    def test_array(self):
+        self.assertEqual(
+            self.dt_schema.properties['C_ARRAY'],
+            Schema(['null', 'object', 'array'], inclusion='available'),
+        )
+        self.assertEqual(
+            self.get_dt_metadata_for_column('C_ARRAY'),
+                        {'selected-by-default': True,
+                         'sql-datatype': 'array'},
+        )
+
     def test_row_to_singer_record(self):
         """Select every supported data type from snowflake,
         generate the singer JSON output message and compare to expected JSON"""
@@ -281,7 +307,9 @@ class TestTypeMapping(unittest.TestCase):
                                       'C_DATETIME': '2019-08-01T17:23:59+00:00',
                                       'C_TIME': '17:23:59',
                                       'C_BINARY': '62696E617279',
-                                      'C_VARBINARY': '76617262696E617279'
+                                      'C_VARBINARY': '76617262696E617279',
+                                      'C_OBJECT': {'test_key': ['test_val']},
+                                      'C_ARRAY': [1, {'foo': 'bar'}, [3, 3, 3]]
                                   })
 
 
