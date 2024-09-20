@@ -25,7 +25,7 @@ setup(name='pipelinewise-tap-snowflake',
       extras_require={
           'test': [
             'pylint==2.8.*',
-            'pytest==6.2.*',
+            'pytest>=6.2,<8.4',
             'pytest-cov==2.12.*',
             'unify==0.5'
           ]
