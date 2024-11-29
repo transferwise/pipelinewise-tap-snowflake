@@ -123,7 +123,7 @@ def row_to_singer_record(catalog_entry, version, row, columns, time_extracted):
     for idx, elem in enumerate(row):
         property_type = catalog_entry.schema.properties[columns[idx]].type
         if isinstance(elem, datetime.datetime):
-            row_to_persist += (elem.isoformat() + '+00:00',)
+            row_to_persist += (elem.isoformat() + ('' if elem.tzinfo else '+00:00'),)
 
         elif isinstance(elem, datetime.date):
             row_to_persist += (elem.isoformat() + 'T00:00:00+00:00',)
