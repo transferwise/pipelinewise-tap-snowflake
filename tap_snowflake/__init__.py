@@ -20,6 +20,7 @@ from singer.schema import Schema
 import tap_snowflake.sync_strategies.common as common
 import tap_snowflake.sync_strategies.full_table as full_table
 import tap_snowflake.sync_strategies.incremental as incremental
+import tap_snowflake.sync_strategies.n_rows as n_rows
 from tap_snowflake.connection import SnowflakeConnection
 
 LOGGER = singer.get_logger('tap_snowflake')
@@ -56,7 +57,8 @@ NUMBER_TYPES = set(['number', 'decimal', 'numeric'])
 INTEGER_TYPES = set(['int', 'integer', 'bigint', 'smallint'])
 FLOAT_TYPES = set(['float', 'float4', 'float8', 'real', 'double', 'double precision'])
 DATETIME_TYPES = set(['datetime', 'timestamp', 'date', 'timestamp_ltz', 'timestamp_ntz', 'timestamp_tz'])
-BINARY_TYPE = set(['binary', 'varbinary'])
+BINARY_TYPES = set(['binary', 'varbinary'])
+OBJECT_TYPES = set(['object', 'array'])
 
 
 def schema_for_column(c):
@@ -90,9 +92,12 @@ def schema_for_column(c):
         result.type = ['null', 'string']
         result.format = 'time'
 
-    elif data_type in BINARY_TYPE:
+    elif data_type in BINARY_TYPES:
         result.type = ['null', 'string']
         result.format = 'binary'
+
+    elif data_type in OBJECT_TYPES:
+        result.type = ['null', 'object', 'array']
 
     else:
         result = Schema(None,
@@ -158,6 +163,7 @@ def get_table_columns(snowflake_conn, tables):
                   ,PARSE_JSON(show_columns."data_type"):precision::number   AS numeric_precision
                   ,PARSE_JSON(show_columns."data_type"):scale::number       AS numeric_scale
               FROM show_columns
+                ORDER BY table_name ASC, column_name ASC
         """
         queries.extend([show_columns, select])
 
@@ -431,6 +437,18 @@ def do_sync_full_table(snowflake_conn, catalog_entry, state, columns):
     singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 
 
+def do_sync_n_rows(snowflake_conn, catalog_entry, state, columns):
+    LOGGER.info('Stream %s is using n-rows replication', catalog_entry.stream)
+
+    write_schema_message(catalog_entry)
+
+    stream_version = common.get_stream_version(catalog_entry.tap_stream_id, state)
+
+    n_rows.sync_table(snowflake_conn, catalog_entry, state, columns, stream_version)
+
+    singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
+
+
 def sync_streams(snowflake_conn, catalog, state):
     for catalog_entry in catalog.streams:
         columns = list(catalog_entry.schema.properties.keys())
@@ -461,6 +479,8 @@ def sync_streams(snowflake_conn, catalog, state):
                 do_sync_incremental(snowflake_conn, catalog_entry, state, columns)
             elif replication_method == 'FULL_TABLE':
                 do_sync_full_table(snowflake_conn, catalog_entry, state, columns)
+            elif replication_method == 'N_ROWS':
+                do_sync_n_rows(snowflake_conn, catalog_entry, state, columns)
             else:
                 raise Exception('Only INCREMENTAL and FULL TABLE replication methods are supported')
 
